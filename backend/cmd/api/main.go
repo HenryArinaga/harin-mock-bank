@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"harin-mock-bank/backend/internal/db"
+	"harin-mock-bank/backend/internal/services"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -20,9 +21,14 @@ func main() {
 		fmt.Printf("Could not connect to pool: %v\n", err)
 		return
 	}
+	defer pool.Close()
 
-	pool.Close()
-	fmt.Printf("Success\n")
+	fmt.Printf("Success connecting to pool\n")
+
+	if err := services.PrintCustomerBalanceSample(ctx, pool); err != nil {
+		fmt.Printf("Load error: %v\n", err)
+		return
+	}
 
 	return
 }
