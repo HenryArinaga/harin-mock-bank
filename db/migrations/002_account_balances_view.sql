@@ -1,25 +1,25 @@
 CREATE VIEW account_balances AS
 SELECT
-  a.id AS account_id,
-  a.account_number,
-  a.account_type,
-  a.account_status,
-  a.currency,
+  accounts.id AS account_id,
+  accounts.account_number,
+  accounts.account_type,
+  accounts.account_status,
+  accounts.currency,
   COALESCE(
     SUM(
       CASE
-        WHEN le.direction = 'credit' THEN le.amount
-        WHEN le.direction = 'debit' THEN -le.amount
+        WHEN ledger_entries.direction = 'credit' THEN ledger_entries.amount
+        WHEN ledger_entries.direction = 'debit' THEN -ledger_entries.amount
         ELSE 0
       END
     ),
     0
   ) AS balance
-FROM accounts a
-LEFT JOIN ledger_entries le ON le.account_id = a.id
+FROM accounts
+LEFT JOIN ledger_entries ON ledger_entries.account_id = accounts.id
 GROUP BY
-  a.id,
-  a.account_number,
-  a.account_type,
-  a.account_status,
-  a.currency;
+  accounts.id,
+  accounts.account_number,
+  accounts.account_type,
+  accounts.account_status,
+  accounts.currency;
