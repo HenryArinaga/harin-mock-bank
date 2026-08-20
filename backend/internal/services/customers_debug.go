@@ -25,3 +25,23 @@ func PrintCustomerBalanceSample(ctx context.Context, pool *pgxpool.Pool) error {
 	}
 	return nil
 }
+
+func PrintCustomerAccountBalanceSample(ctx context.Context, pool *pgxpool.Pool) error {
+	customerID := int64(1)
+	accounts, err := ListAccountsByCustomer(ctx, pool, customerID)
+	if err != nil {
+		return err
+	}
+	if len(accounts) > 0 {
+		firstAccount := accounts[0]
+		fmt.Printf("%d, %d, %s, %s, %s, %s, %s\n",
+			firstAccount.AccountID,
+			firstAccount.CustomerID,
+			firstAccount.AccountStatus,
+			firstAccount.AccountType,
+			firstAccount.Currency,
+			firstAccount.AccountBalance,
+		)
+	}
+	return nil
+}
