@@ -9,6 +9,8 @@ import (
 type CustomerAccount struct {
 	AccountID      int64
 	CustomerID     int64
+	FirstName      string
+	LastName       string
 	AccountStatus  string
 	AccountType    string
 	AccountNumber  string
@@ -17,7 +19,7 @@ type CustomerAccount struct {
 }
 
 func ListAccountsByCustomer(ctx context.Context, pool *pgxpool.Pool, customerID int64) ([]CustomerAccount, error) {
-	rows, err := pool.Query(ctx, "SELECT account_id,customer_id,account_status,account_type,account_number,currency,balance FROM customer_account_balances WHERE customer_id = $1", customerID)
+	rows, err := pool.Query(ctx, "SELECT account_id,customer_id,first_name,last_name,account_status,account_type,account_number,currency,balance FROM customer_account_balances WHERE customer_id = $1", customerID)
 	if err != nil {
 		return nil, err
 	}
@@ -29,6 +31,8 @@ func ListAccountsByCustomer(ctx context.Context, pool *pgxpool.Pool, customerID 
 		err := rows.Scan(
 			&account.AccountID,
 			&account.CustomerID,
+			&account.FirstName,
+			&account.LastName,
 			&account.AccountStatus,
 			&account.AccountType,
 			&account.AccountNumber,

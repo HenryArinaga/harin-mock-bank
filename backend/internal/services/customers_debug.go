@@ -34,9 +34,11 @@ func PrintCustomerAccountBalanceSample(ctx context.Context, pool *pgxpool.Pool) 
 	}
 	if len(accounts) > 0 {
 		firstAccount := accounts[0]
-		fmt.Printf("%d, %d, %s, %s, %s, %s, %s\n",
+		fmt.Printf("%d, %d, %s, %s, %s, %s, %s, %s, %s\n",
 			firstAccount.AccountID,
 			firstAccount.CustomerID,
+			firstAccount.FirstName,
+			firstAccount.LastName,
 			firstAccount.AccountStatus,
 			firstAccount.AccountType,
 			firstAccount.AccountNumber,
