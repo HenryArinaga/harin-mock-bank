@@ -30,5 +30,10 @@ func main() {
 		return
 	}
 
+	if err := services.PrintCustomerAccountBalanceSample(ctx, pool); err != nil {
+		fmt.Printf("Load error: %v\n", err)
+		return
+	}
+
 	return
 }

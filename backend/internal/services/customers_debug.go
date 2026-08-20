@@ -39,6 +39,7 @@ func PrintCustomerAccountBalanceSample(ctx context.Context, pool *pgxpool.Pool) 
 			firstAccount.CustomerID,
 			firstAccount.AccountStatus,
 			firstAccount.AccountType,
+			firstAccount.AccountNumber,
 			firstAccount.Currency,
 			firstAccount.AccountBalance,
 		)
