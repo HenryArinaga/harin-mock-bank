@@ -48,3 +48,26 @@ func PrintCustomerAccountBalanceSample(ctx context.Context, pool *pgxpool.Pool) 
 	}
 	return nil
 }
+
+func PrintTransactionByAccountSample(ctx context.Context, pool *pgxpool.Pool) error {
+	transactionID := int64(1)
+	transactions, err := ListTransactionsByAccount(ctx, pool, transactionID)
+	if err != nil {
+		return err
+	}
+	if len(transactions) > 0 {
+		firstTransaction := transactions[0]
+		fmt.Printf("%d, %d, %d, %s, %s, %s, %s, %s, %v\n",
+			firstTransaction.TransactionID,
+			firstTransaction.ToAccountID,
+			firstTransaction.FromAccountID,
+			firstTransaction.TransactionType,
+			firstTransaction.TransactionDescription,
+			firstTransaction.TransactionStatus,
+			firstTransaction.Currency,
+			firstTransaction.Amount,
+			firstTransaction.created_at,
+		)
+	}
+	return nil
+}
