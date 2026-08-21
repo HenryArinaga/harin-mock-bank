@@ -33,7 +33,12 @@ type TransactionsByAccount struct {
 }
 
 func ListAccountsByCustomer(ctx context.Context, pool *pgxpool.Pool, customerID int64) ([]CustomerAccount, error) {
-	rows, err := pool.Query(ctx, "SELECT account_id,customer_id,first_name,last_name,account_status,account_type,account_number,currency,balance FROM customer_account_balances WHERE customer_id = $1", customerID)
+	rows, err := pool.Query(ctx,
+		`SELECT account_id, customer_id, first_name,
+		last_name, account_status, account_type,
+		account_number, currency,balance 
+		FROM customer_account_balances 
+		WHERE customer_id = $1`, customerID)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +70,12 @@ func ListAccountsByCustomer(ctx context.Context, pool *pgxpool.Pool, customerID 
 }
 
 func ListTransactionsByAccount(ctx context.Context, pool *pgxpool.Pool, accountNumber string) ([]TransactionsByAccount, error) {
-	rows, err := pool.Query(ctx, "SELECT transaction_id, to_account_number, from_account_number, transaction_type, transaction_description,transaction_status, currency, amount,created_at FROM transaction_history WHERE from_account_number = $1 OR to_account_number = $1", accountNumber)
+	rows, err := pool.Query(ctx,
+		`SELECT transaction_id, to_account_number, from_account_number, 
+		transaction_type, transaction_description, transaction_status, 
+		currency, amount, created_at 
+		FROM transaction_history 
+		WHERE from_account_number = $1 OR to_account_number = $1`, accountNumber)
 	if err != nil {
 		return nil, err
 	}

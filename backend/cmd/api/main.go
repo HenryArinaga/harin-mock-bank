@@ -25,7 +25,7 @@ func main() {
 
 	fmt.Printf("Success connecting to pool\n")
 
-	if err := services.PrintCustomerBalanceSample(ctx, pool); err != nil {
+	/* if err := services.PrintCustomerBalanceSample(ctx, pool); err != nil {
 		fmt.Printf("Load error: %v\n", err)
 		return
 	}
@@ -37,6 +37,11 @@ func main() {
 
 	if err := services.PrintTransactionByAccountSample(ctx, pool); err != nil {
 		fmt.Printf("Load error: %v\n", err)
+		return
+	} */
+
+	if err := services.PrintInitiateTransferSample(ctx, pool); err != nil {
+		fmt.Printf("Transfer error: %v\n", err)
 		return
 	}
 
