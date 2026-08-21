@@ -22,14 +22,14 @@ type CustomerAccount struct {
 
 type TransactionsByAccount struct {
 	TransactionID          int64
-	ToAccountID            pgtype.Text
-	FromAccountID          pgtype.Text
+	ToAccountNumber        pgtype.Text
+	FromAccountNumber      pgtype.Text
 	TransactionType        string
-	TransactionDescription string
+	TransactionDescription pgtype.Text
 	TransactionStatus      string
 	Currency               string
 	Amount                 string
-	created_at             time.Time
+	CreatedAt              time.Time
 }
 
 func ListAccountsByCustomer(ctx context.Context, pool *pgxpool.Pool, customerID int64) ([]CustomerAccount, error) {
@@ -64,8 +64,8 @@ func ListAccountsByCustomer(ctx context.Context, pool *pgxpool.Pool, customerID 
 	return accounts, nil
 }
 
-func ListTransactionsByAccount(ctx context.Context, pool *pgxpool.Pool, transactionID int64) ([]TransactionsByAccount, error) {
-	rows, err := pool.Query(ctx, "SELECT transaction_id, to_account_number, from_account_number, transaction_type, transaction_description,transaction_status, currency, amount,created_at FROM transaction_history WHERE transaction_id = $1", transactionID)
+func ListTransactionsByAccount(ctx context.Context, pool *pgxpool.Pool, accountNumber string) ([]TransactionsByAccount, error) {
+	rows, err := pool.Query(ctx, "SELECT transaction_id, to_account_number, from_account_number, transaction_type, transaction_description,transaction_status, currency, amount,created_at FROM transaction_history WHERE from_account_number = $1 OR to_account_number = $1", accountNumber)
 	if err != nil {
 		return nil, err
 	}
@@ -76,14 +76,14 @@ func ListTransactionsByAccount(ctx context.Context, pool *pgxpool.Pool, transact
 		var transaction TransactionsByAccount
 		err := rows.Scan(
 			&transaction.TransactionID,
-			&transaction.ToAccountID,
-			&transaction.FromAccountID,
+			&transaction.ToAccountNumber,
+			&transaction.FromAccountNumber,
 			&transaction.TransactionType,
 			&transaction.TransactionDescription,
 			&transaction.TransactionStatus,
 			&transaction.Currency,
 			&transaction.Amount,
-			&transaction.created_at,
+			&transaction.CreatedAt,
 		)
 		if err != nil {
 			return nil, err
