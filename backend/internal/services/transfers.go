@@ -62,7 +62,7 @@ func InitiateTransfer(ctx context.Context, pool *pgxpool.Pool, input MakeTransfe
 	return transactionID, nil
 }
 
-func GetPendingTransferByID(ctx context.Context, pool *pgxpool.Pool, transactionID int64) (GetTransferStatus, error) {
+func GetPendingTransferByID(ctx context.Context, db DBRunner, transactionID int64) (GetTransferStatus, error) {
 	getPendingTransferByID :=
 		`SELECT 
 		id, 
@@ -80,7 +80,7 @@ func GetPendingTransferByID(ctx context.Context, pool *pgxpool.Pool, transaction
 		"id": transactionID,
 	}
 	var transaction GetTransferStatus
-	row := pool.QueryRow(ctx, getPendingTransferByID, args)
+	row := db.QueryRow(ctx, getPendingTransferByID, args)
 	err := row.Scan(
 		&transaction.TransactionID,
 		&transaction.FromAccountID,
@@ -132,7 +132,7 @@ func GetCompletedTransferByID(ctx context.Context, pool *pgxpool.Pool, transacti
 	return transaction, nil
 }
 
-func UpdatePendingTransfer(ctx context.Context, pool *pgxpool.Pool, transactionID int64) error {
+func UpdatePendingTransfer(ctx context.Context, db DBRunner, transactionID int64) error {
 	updateTransferByID :=
 		`UPDATE transactions
 	SET transaction_status = 'completed'
@@ -142,7 +142,7 @@ func UpdatePendingTransfer(ctx context.Context, pool *pgxpool.Pool, transactionI
 	args := pgx.NamedArgs{
 		"id": transactionID,
 	}
-	_, err := pool.Exec(ctx, updateTransferByID, args)
+	_, err := db.Exec(ctx, updateTransferByID, args)
 
 	if err != nil {
 		return err
@@ -152,7 +152,18 @@ func UpdatePendingTransfer(ctx context.Context, pool *pgxpool.Pool, transactionI
 }
 
 func CompleteTransfer(ctx context.Context, pool *pgxpool.Pool, transactionID int64) error {
-	transaction, err := GetPendingTransferByID(ctx, pool, transactionID)
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("begin transaction: %w", err)
+	}
+
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback(ctx)
+		}
+	}()
+
+	transaction, err := GetPendingTransferByID(ctx, tx, transactionID)
 	if err != nil {
 		return err
 	}
@@ -163,7 +174,7 @@ func CompleteTransfer(ctx context.Context, pool *pgxpool.Pool, transactionID int
 		Currency:      transaction.Currency,
 		Amount:        transaction.Amount,
 	}
-	err = InsertLedgerTransaction(ctx, pool, input)
+	err = InsertLedgerTransaction(ctx, tx, input)
 	if err != nil {
 		return err
 	}
@@ -175,14 +186,18 @@ func CompleteTransfer(ctx context.Context, pool *pgxpool.Pool, transactionID int
 		Currency:      transaction.Currency,
 		Amount:        transaction.Amount,
 	}
-	err = InsertLedgerTransaction(ctx, pool, input2)
+	err = InsertLedgerTransaction(ctx, tx, input2)
 	if err != nil {
 		return err
 	}
 
-	err = UpdatePendingTransfer(ctx, pool, transactionID)
+	err = UpdatePendingTransfer(ctx, tx, transactionID)
 	if err != nil {
 		return err
+	}
+
+	if err = tx.Commit(ctx); err != nil {
+		return fmt.Errorf("commit transaction: %w", err)
 	}
 	return nil
 

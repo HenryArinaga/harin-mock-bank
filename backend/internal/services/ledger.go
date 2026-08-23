@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type LedgerInfo struct {
@@ -16,7 +15,7 @@ type LedgerInfo struct {
 	Amount        string
 }
 
-func InsertLedgerTransaction(ctx context.Context, pool *pgxpool.Pool, input LedgerInfo) error {
+func InsertLedgerTransaction(ctx context.Context, db DBRunner, input LedgerInfo) error {
 	insertLedgerTransaction :=
 		`INSERT INTO ledger_entries (
 	account_id,
@@ -39,7 +38,7 @@ func InsertLedgerTransaction(ctx context.Context, pool *pgxpool.Pool, input Ledg
 		"currency":      input.Currency,
 		"amount":        input.Amount,
 	}
-	_, err := pool.Exec(ctx, insertLedgerTransaction, args)
+	_, err := db.Exec(ctx, insertLedgerTransaction, args)
 	if err != nil {
 		return fmt.Errorf("unable to insert ledger entry: %w", err)
 	}
