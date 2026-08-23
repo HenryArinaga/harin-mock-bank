@@ -16,7 +16,7 @@ type MakeTransferInput struct {
 	TransactionDescription string
 }
 
-func InitiateTransfer(ctx context.Context, pool *pgxpool.Pool, input MakeTransferInput) error {
+func InitiateTransfer(ctx context.Context, pool *pgxpool.Pool, input MakeTransferInput) (int64, error) {
 	insertTransferSQL :=
 		`INSERT INTO transactions (
 		transaction_type, 
@@ -33,7 +33,8 @@ func InitiateTransfer(ctx context.Context, pool *pgxpool.Pool, input MakeTransfe
 		@currency, 
 		@amount, 
 		@transactionDescription
-		)`
+		)
+		RETURNING id`
 	args := pgx.NamedArgs{
 		"fromAccount":            input.FromAccountID,
 		"toAccount":              input.ToAccountID,
@@ -41,10 +42,12 @@ func InitiateTransfer(ctx context.Context, pool *pgxpool.Pool, input MakeTransfe
 		"amount":                 input.Amount,
 		"transactionDescription": input.TransactionDescription,
 	}
-	_, err := pool.Exec(ctx, insertTransferSQL, args)
+	var transactionID int64
+	row := pool.QueryRow(ctx, insertTransferSQL, args)
+	err := row.Scan(&transactionID)
 	if err != nil {
-		return fmt.Errorf("unable to insert row: %w", err)
+		return 0, fmt.Errorf("unable to insert row: %w", err)
 	}
 
-	return nil
+	return transactionID, nil
 }

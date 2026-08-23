@@ -80,10 +80,10 @@ func PrintInitiateTransferSample(ctx context.Context, pool *pgxpool.Pool) error 
 		Amount:                 `150`,
 		TransactionDescription: `IPhone 18 Pro MAX`,
 	}
-	err := InitiateTransfer(ctx, pool, input)
+	transactionID, err := InitiateTransfer(ctx, pool, input)
 	if err != nil {
 		return err
 	}
-	fmt.Println("Sucess inserting into database")
+	fmt.Printf("Success inserting into database\nCreated transfer transaction ID: %v\n", transactionID)
 	return nil
 }
