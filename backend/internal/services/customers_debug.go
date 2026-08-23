@@ -137,7 +137,19 @@ func InsertLedgerTransactionSample(ctx context.Context, pool *pgxpool.Pool) erro
 		Amount:        transaction.Amount,
 	}
 
+	input2 := LedgerInfo{
+		AccountID:     transaction.ToAccountID,
+		TransactionID: transaction.TransactionID,
+		Direction:     "credit",
+		Currency:      transaction.Currency,
+		Amount:        transaction.Amount,
+	}
+
 	err = InsertLedgerTransaction(ctx, pool, input)
+	if err != nil {
+		return err
+	}
+	err = InsertLedgerTransaction(ctx, pool, input2)
 	if err != nil {
 		return err
 	}
