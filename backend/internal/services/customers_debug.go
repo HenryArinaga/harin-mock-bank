@@ -87,3 +87,25 @@ func PrintInitiateTransferSample(ctx context.Context, pool *pgxpool.Pool) error 
 	fmt.Printf("Success inserting into database\nCreated transfer transaction ID: %v\n", transactionID)
 	return nil
 }
+
+func GetPendingTransferByIDSample(ctx context.Context, pool *pgxpool.Pool) error {
+	transactionID := int64(303)
+	transaction, err := GetPendingTransferByID(ctx, pool, transactionID)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("%d is %s\n", transaction.TransactionID, transaction.TransactionStatus)
+
+	return nil
+}
+
+func UpdateTransferSample(ctx context.Context, pool *pgxpool.Pool) error {
+	transactionID := int64(303)
+	err := UpdateTransfer(ctx, pool, transactionID)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Transaction %d succesfully updated to completed\n", transactionID)
+
+	return nil
+}
