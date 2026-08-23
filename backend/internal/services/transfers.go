@@ -97,7 +97,42 @@ func GetPendingTransferByID(ctx context.Context, pool *pgxpool.Pool, transaction
 	return transaction, nil
 }
 
-func UpdateTransfer(ctx context.Context, pool *pgxpool.Pool, transactionID int64) error {
+func GetCompletedTransferByID(ctx context.Context, pool *pgxpool.Pool, transactionID int64) (GetTransferStatus, error) {
+	getCompletedTransferByID :=
+		`SELECT 
+		id, 
+		from_account_id, 
+		to_account_id, 
+		currency, amount, 
+		transaction_description, 
+		transaction_status 
+		FROM transactions
+	WHERE id = @id
+	AND transaction_type = 'transfer' 
+	AND transaction_status = 'completed'`
+
+	args := pgx.NamedArgs{
+		"id": transactionID,
+	}
+	var transaction GetTransferStatus
+	row := pool.QueryRow(ctx, getCompletedTransferByID, args)
+	err := row.Scan(
+		&transaction.TransactionID,
+		&transaction.FromAccountID,
+		&transaction.ToAccountID,
+		&transaction.Currency,
+		&transaction.Amount,
+		&transaction.TransactionDescription,
+		&transaction.TransactionStatus,
+	)
+	if err != nil {
+		return transaction, fmt.Errorf("unable to get pending transfer by id: %w", err)
+	}
+
+	return transaction, nil
+}
+
+func UpdatePendingTransfer(ctx context.Context, pool *pgxpool.Pool, transactionID int64) error {
 	updateTransferByID :=
 		`UPDATE transactions
 	SET transaction_status = 'completed'

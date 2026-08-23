@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"harin-mock-bank/backend/internal/db"
+	"harin-mock-bank/backend/internal/services"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -51,11 +52,23 @@ func main() {
 			return
 		} */
 
+	/* err = services.GetCompletedTransferByIDSample(ctx, pool)
+	if err != nil {
+		fmt.Printf("Error getting transfer status: %v\n", err)
+		return
+	} */
+
 	/*err = services.UpdateTransferSample(ctx, pool)
 	if err != nil {
 		fmt.Printf("Error updating transfer status: %s\n", err)
 		return
 	}*/
+
+	err = services.InsertLedgerTransactionSample(ctx, pool)
+	if err != nil {
+		fmt.Printf("error inserting into ledger %v", err)
+		return
+	}
 
 	return
 }

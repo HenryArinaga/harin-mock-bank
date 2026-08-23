@@ -89,7 +89,7 @@ func PrintInitiateTransferSample(ctx context.Context, pool *pgxpool.Pool) error 
 }
 
 func GetPendingTransferByIDSample(ctx context.Context, pool *pgxpool.Pool) error {
-	transactionID := int64(303)
+	transactionID := int64(302)
 	transaction, err := GetPendingTransferByID(ctx, pool, transactionID)
 	if err != nil {
 		return err
@@ -99,13 +99,49 @@ func GetPendingTransferByIDSample(ctx context.Context, pool *pgxpool.Pool) error
 	return nil
 }
 
-func UpdateTransferSample(ctx context.Context, pool *pgxpool.Pool) error {
+func GetCompletedTransferByIDSample(ctx context.Context, pool *pgxpool.Pool) error {
 	transactionID := int64(303)
-	err := UpdateTransfer(ctx, pool, transactionID)
+	transaction, err := GetCompletedTransferByID(ctx, pool, transactionID)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("%d is %s\n", transaction.TransactionID, transaction.TransactionStatus)
+
+	return nil
+}
+
+func UpdatePendingTransferSample(ctx context.Context, pool *pgxpool.Pool) error {
+	// transactionID values need to be updated depending
+	// On if the current transaction is not pending
+	transactionID := int64(303)
+	err := UpdatePendingTransfer(ctx, pool, transactionID)
 	if err != nil {
 		return err
 	}
 	fmt.Printf("Transaction %d succesfully updated to completed\n", transactionID)
 
 	return nil
+}
+
+func InsertLedgerTransactionSample(ctx context.Context, pool *pgxpool.Pool) error {
+	transactionID := int64(303)
+	transaction, err := GetCompletedTransferByID(ctx, pool, transactionID)
+	if err != nil {
+		return err
+	}
+	input := LedgerInfo{
+		AccountID:     transaction.FromAccountID,
+		TransactionID: transaction.TransactionID,
+		Direction:     "debit",
+		Currency:      transaction.Currency,
+		Amount:        transaction.Amount,
+	}
+
+	err = InsertLedgerTransaction(ctx, pool, input)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Success inserting into ledger\n")
+	return nil
+
 }
