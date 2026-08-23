@@ -150,3 +150,40 @@ func UpdatePendingTransfer(ctx context.Context, pool *pgxpool.Pool, transactionI
 
 	return nil
 }
+
+func CompleteTransfer(ctx context.Context, pool *pgxpool.Pool, transactionID int64) error {
+	transaction, err := GetPendingTransferByID(ctx, pool, transactionID)
+	if err != nil {
+		return err
+	}
+	input := LedgerInfo{
+		AccountID:     transaction.FromAccountID,
+		TransactionID: transaction.TransactionID,
+		Direction:     "debit",
+		Currency:      transaction.Currency,
+		Amount:        transaction.Amount,
+	}
+	err = InsertLedgerTransaction(ctx, pool, input)
+	if err != nil {
+		return err
+	}
+
+	input2 := LedgerInfo{
+		AccountID:     transaction.ToAccountID,
+		TransactionID: transaction.TransactionID,
+		Direction:     "credit",
+		Currency:      transaction.Currency,
+		Amount:        transaction.Amount,
+	}
+	err = InsertLedgerTransaction(ctx, pool, input2)
+	if err != nil {
+		return err
+	}
+
+	err = UpdatePendingTransfer(ctx, pool, transactionID)
+	if err != nil {
+		return err
+	}
+	return nil
+
+}

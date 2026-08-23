@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"harin-mock-bank/backend/internal/db"
+	"harin-mock-bank/backend/internal/services"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -38,11 +39,12 @@ func main() {
 		fmt.Printf("Load error: %v\n", err)
 		return
 	} */
-
-	/* err := services.PrintInitiateTransferSample(ctx, pool); err != nil {
-		fmt.Printf("Transfer error: %v\n", err)
-		return
-	}*/
+	/*
+		err = services.PrintInitiateTransferSample(ctx, pool)
+		if err != nil {
+			fmt.Printf("Transfer error: %v\n", err)
+			return
+		} */
 
 	/*
 		err = services.GetPendingTransferByIDSample(ctx, pool)
@@ -69,6 +71,12 @@ func main() {
 			fmt.Printf("error inserting into ledger %v", err)
 			return
 		} */
+
+	err = services.CompleteTransferSample(ctx, pool)
+	if err != nil {
+		fmt.Printf("error completing transfer: %v", err)
+		return
+	}
 
 	return
 }

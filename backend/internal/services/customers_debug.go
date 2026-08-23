@@ -155,5 +155,14 @@ func InsertLedgerTransactionSample(ctx context.Context, pool *pgxpool.Pool) erro
 	}
 	fmt.Printf("Success inserting into ledger\n")
 	return nil
+}
 
+func CompleteTransferSample(ctx context.Context, pool *pgxpool.Pool) error {
+	transactionID := int64(304)
+	err := CompleteTransfer(ctx, pool, transactionID)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Success completing transfer: %d", transactionID)
+	return nil
 }
