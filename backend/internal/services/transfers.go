@@ -98,7 +98,7 @@ func GetPendingTransferByID(ctx context.Context, db DBRunner, transactionID int6
 	return transaction, nil
 }
 
-func GetCompletedTransferByID(ctx context.Context, pool *pgxpool.Pool, transactionID int64) (GetTransferStatus, error) {
+func GetCompletedTransferByID(ctx context.Context, db DBRunner, transactionID int64) (GetTransferStatus, error) {
 	getCompletedTransferByID :=
 		`SELECT 
 		id, 
@@ -116,7 +116,7 @@ func GetCompletedTransferByID(ctx context.Context, pool *pgxpool.Pool, transacti
 		"id": transactionID,
 	}
 	var transaction GetTransferStatus
-	row := pool.QueryRow(ctx, getCompletedTransferByID, args)
+	row := db.QueryRow(ctx, getCompletedTransferByID, args)
 	err := row.Scan(
 		&transaction.TransactionID,
 		&transaction.FromAccountID,
@@ -154,6 +154,30 @@ func UpdatePendingTransfer(ctx context.Context, db DBRunner, transactionID int64
 	return nil
 }
 
+func EnsureSufficientBalance(ctx context.Context, db DBRunner, accountID int64, amount string) error {
+	balanceQueryCheck := `
+	SELECT balance >= @amount
+	FROM account_balances
+	WHERE account_id = @accountID`
+	args := pgx.NamedArgs{
+		"amount":    amount,
+		"accountID": accountID,
+	}
+
+	var hasEnoughBalance bool
+	row := db.QueryRow(ctx, balanceQueryCheck, args)
+	err := row.Scan(
+		&hasEnoughBalance,
+	)
+	if err != nil {
+		return err
+	}
+	if !hasEnoughBalance {
+		return fmt.Errorf("insufficient funds error")
+	}
+	return nil
+}
+
 func CompleteTransfer(ctx context.Context, pool *pgxpool.Pool, transactionID int64) error {
 	tx, err := pool.Begin(ctx)
 	if err != nil {
@@ -177,6 +201,12 @@ func CompleteTransfer(ctx context.Context, pool *pgxpool.Pool, transactionID int
 		Currency:      transaction.Currency,
 		Amount:        transaction.Amount,
 	}
+
+	err = EnsureSufficientBalance(ctx, tx, transaction.FromAccountID, transaction.Amount)
+	if err != nil {
+		return err
+	}
+
 	err = InsertLedgerTransaction(ctx, tx, input)
 	if err != nil {
 		return err
