@@ -59,7 +59,7 @@ func UpdatePendingTransferSample(ctx context.Context, pool *pgxpool.Pool) error 
 }
 
 func CompleteTransferSample(ctx context.Context, pool *pgxpool.Pool) error {
-	transactionID := int64(305)
+	transactionID := int64(306)
 	err := CompleteTransfer(ctx, pool, transactionID)
 	if err != nil {
 		return err

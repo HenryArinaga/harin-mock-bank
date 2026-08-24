@@ -154,6 +154,27 @@ func UpdatePendingTransfer(ctx context.Context, db DBRunner, transactionID int64
 	return nil
 }
 
+func UpdatePendingTransferFailed(ctx context.Context, db DBRunner, transactionID int64) error {
+	updateTransferByID :=
+		`UPDATE transactions
+	SET transaction_status = 'failed'
+	WHERE id = @id
+	AND transaction_type = 'transfer'
+	AND transaction_status = 'pending'`
+	args := pgx.NamedArgs{
+		"id": transactionID,
+	}
+	commandTag, err := db.Exec(ctx, updateTransferByID, args)
+	if err != nil {
+		return err
+	}
+
+	if commandTag.RowsAffected() < 1 {
+		return errors.New("no pending transfer found to fail")
+	}
+	return nil
+}
+
 func EnsureSufficientBalance(ctx context.Context, db DBRunner, accountID int64, amount string) error {
 	balanceQueryCheck := `
 	SELECT balance >= @amount
@@ -202,9 +223,17 @@ func CompleteTransfer(ctx context.Context, pool *pgxpool.Pool, transactionID int
 		Amount:        transaction.Amount,
 	}
 
-	err = EnsureSufficientBalance(ctx, tx, transaction.FromAccountID, transaction.Amount)
-	if err != nil {
-		return err
+	validationErr := EnsureSufficientBalance(ctx, tx, transaction.FromAccountID, transaction.Amount)
+	if validationErr != nil {
+		failErr := UpdatePendingTransferFailed(ctx, tx, transactionID)
+		if failErr != nil {
+			return failErr
+		}
+		commitErr := tx.Commit(ctx)
+		if commitErr != nil {
+			return commitErr
+		}
+		return validationErr
 	}
 
 	err = InsertLedgerTransaction(ctx, tx, input)
@@ -229,7 +258,8 @@ func CompleteTransfer(ctx context.Context, pool *pgxpool.Pool, transactionID int
 		return err
 	}
 
-	if err = tx.Commit(ctx); err != nil {
+	err = tx.Commit(ctx)
+	if err != nil {
 		return fmt.Errorf("commit transaction: %w", err)
 	}
 	return nil
