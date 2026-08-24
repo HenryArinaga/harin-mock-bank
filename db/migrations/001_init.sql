@@ -97,7 +97,9 @@ CREATE TABLE ledger_entries (
         CHECK (amount > 0),
     
     CONSTRAINT ledger_entries_direction_check
-        CHECK (direction IN ('debit', 'credit'))
+        CHECK (direction IN ('debit', 'credit')),
     
+    CONSTRAINT ledger_entries_no_duplicate_direction
+        UNIQUE (transaction_id, account_id, direction)
 
 );

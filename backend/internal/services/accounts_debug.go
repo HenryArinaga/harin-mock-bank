@@ -1,0 +1,54 @@
+package services
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+)
+
+func PrintCustomerAccountBalanceSample(ctx context.Context, pool *pgxpool.Pool) error {
+	customerID := int64(1)
+	accounts, err := ListAccountsByCustomer(ctx, pool, customerID)
+	if err != nil {
+		return err
+	}
+	if len(accounts) > 0 {
+		firstAccount := accounts[0]
+		fmt.Printf("%d, %d, %s, %s, %s, %s, %s, %s, %s\n",
+			firstAccount.AccountID,
+			firstAccount.CustomerID,
+			firstAccount.FirstName,
+			firstAccount.LastName,
+			firstAccount.AccountStatus,
+			firstAccount.AccountType,
+			firstAccount.AccountNumber,
+			firstAccount.Currency,
+			firstAccount.AccountBalance,
+		)
+	}
+	return nil
+}
+
+func PrintTransactionByAccountSample(ctx context.Context, pool *pgxpool.Pool) error {
+	accountNumber := "654218"
+	transactions, err := ListTransactionsByAccount(ctx, pool, accountNumber)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Loaded %d transactions\n", len(transactions))
+	for _, transaction := range transactions {
+		fmt.Printf("%d, %s, %s, %s, %s, %s, %s, %s, %v\n",
+			transaction.TransactionID,
+			transaction.ToAccountNumber.String,
+			transaction.FromAccountNumber.String,
+			transaction.TransactionType,
+			transaction.TransactionDescription.String,
+			transaction.TransactionStatus,
+			transaction.Currency,
+			transaction.Amount,
+			transaction.CreatedAt,
+		)
+	}
+	return nil
+}

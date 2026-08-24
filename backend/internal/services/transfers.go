@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
@@ -142,12 +143,14 @@ func UpdatePendingTransfer(ctx context.Context, db DBRunner, transactionID int64
 	args := pgx.NamedArgs{
 		"id": transactionID,
 	}
-	_, err := db.Exec(ctx, updateTransferByID, args)
-
+	commandTag, err := db.Exec(ctx, updateTransferByID, args)
 	if err != nil {
 		return err
 	}
 
+	if commandTag.RowsAffected() < 1 {
+		return errors.New("no pending transfer found to complete")
+	}
 	return nil
 }
 
