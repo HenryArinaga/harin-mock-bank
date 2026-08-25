@@ -9,10 +9,10 @@ import (
 
 func PrintInitiateTransferSample(ctx context.Context, pool *pgxpool.Pool) error {
 	input := MakeTransferInput{
-		FromAccountID:          28,
-		ToAccountID:            29,
+		FromAccountID:          7,
+		ToAccountID:            1,
 		Currency:               `USD`,
-		Amount:                 `150`,
+		Amount:                 `1`,
 		TransactionDescription: `IPhone 18 Pro MAX`,
 	}
 	transactionID, err := InitiateTransfer(ctx, pool, input)
@@ -59,7 +59,7 @@ func UpdatePendingTransferSample(ctx context.Context, pool *pgxpool.Pool) error 
 }
 
 func CompleteTransferSample(ctx context.Context, pool *pgxpool.Pool) error {
-	transactionID := int64(306)
+	transactionID := int64(308)
 	err := CompleteTransfer(ctx, pool, transactionID)
 	if err != nil {
 		return err

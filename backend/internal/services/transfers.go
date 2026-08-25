@@ -223,6 +223,84 @@ func CompleteTransfer(ctx context.Context, pool *pgxpool.Pool, transactionID int
 		Amount:        transaction.Amount,
 	}
 
+	fromAccountCheckErr := EnsureAccountExists(ctx, tx, transaction.FromAccountID)
+	if fromAccountCheckErr != nil {
+		failErr := UpdatePendingTransferFailed(ctx, tx, transactionID)
+		if failErr != nil {
+			return failErr
+		}
+		commitErr := tx.Commit(ctx)
+		if commitErr != nil {
+			return commitErr
+		}
+		return fromAccountCheckErr
+	}
+
+	toAccountCheckErr := EnsureAccountExists(ctx, tx, transaction.ToAccountID)
+	if toAccountCheckErr != nil {
+		failErr := UpdatePendingTransferFailed(ctx, tx, transactionID)
+		if failErr != nil {
+			return failErr
+		}
+		commitErr := tx.Commit(ctx)
+		if commitErr != nil {
+			return commitErr
+		}
+		return toAccountCheckErr
+	}
+
+	fromActiveAccountErr := EnsureAccountActive(ctx, tx, transaction.FromAccountID)
+	if fromActiveAccountErr != nil {
+		failErr := UpdatePendingTransferFailed(ctx, tx, transactionID)
+		if failErr != nil {
+			return failErr
+		}
+		commitErr := tx.Commit(ctx)
+		if commitErr != nil {
+			return commitErr
+		}
+		return fromActiveAccountErr
+	}
+
+	toActiveAccountErr := EnsureAccountActive(ctx, tx, transaction.ToAccountID)
+	if toActiveAccountErr != nil {
+		failErr := UpdatePendingTransferFailed(ctx, tx, transactionID)
+		if failErr != nil {
+			return failErr
+		}
+		commitErr := tx.Commit(ctx)
+		if commitErr != nil {
+			return commitErr
+		}
+		return toActiveAccountErr
+	}
+
+	fromAccountCurrencyErr := EnsureCorrectCurrency(ctx, tx, transaction.FromAccountID, transaction.Currency)
+	if fromAccountCurrencyErr != nil {
+		failErr := UpdatePendingTransferFailed(ctx, tx, transactionID)
+		if failErr != nil {
+			return failErr
+		}
+		commitErr := tx.Commit(ctx)
+		if commitErr != nil {
+			return commitErr
+		}
+		return fromAccountCurrencyErr
+	}
+
+	toAccountCurrencyErr := EnsureCorrectCurrency(ctx, tx, transaction.ToAccountID, transaction.Currency)
+	if toAccountCurrencyErr != nil {
+		failErr := UpdatePendingTransferFailed(ctx, tx, transactionID)
+		if failErr != nil {
+			return failErr
+		}
+		commitErr := tx.Commit(ctx)
+		if commitErr != nil {
+			return commitErr
+		}
+		return toAccountCurrencyErr
+	}
+
 	validationErr := EnsureSufficientBalance(ctx, tx, transaction.FromAccountID, transaction.Amount)
 	if validationErr != nil {
 		failErr := UpdatePendingTransferFailed(ctx, tx, transactionID)

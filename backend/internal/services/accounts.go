@@ -2,8 +2,10 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -104,4 +106,50 @@ func ListTransactionsByAccount(ctx context.Context, pool *pgxpool.Pool, accountN
 		return nil, err
 	}
 	return transactions, nil
+}
+
+func EnsureAccountExists(ctx context.Context, db DBRunner, accountID int64) error {
+	accountCheck := `
+	SELECT EXISTS (
+		SELECT 1 
+		FROM accounts 
+		WHERE id = @accountID
+		)`
+	args := pgx.NamedArgs{
+		"accountID": accountID,
+	}
+	var accountExists bool
+	row := db.QueryRow(ctx, accountCheck, args)
+	err := row.Scan(
+		&accountExists,
+	)
+	if err != nil {
+		return err
+	}
+	if !accountExists {
+		return fmt.Errorf("account does not exist")
+	}
+	return nil
+}
+
+func EnsureAccountActive(ctx context.Context, db DBRunner, accountID int64) error {
+	accountActiveCheck := `
+	SELECT account_status = 'active'
+	FROM accounts
+	WHERE id = @accountID`
+	args := pgx.NamedArgs{
+		"accountID": accountID,
+	}
+	var accountActive bool
+	row := db.QueryRow(ctx, accountActiveCheck, args)
+	err := row.Scan(
+		&accountActive,
+	)
+	if err != nil {
+		return err
+	}
+	if !accountActive {
+		return fmt.Errorf("account is not active")
+	}
+	return nil
 }
