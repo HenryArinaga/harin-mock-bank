@@ -78,11 +78,17 @@ func main() {
 			return
 		}
 	*/
+	/*
+		err = services.CreateHashedAccountSample(ctx, pool)
+		if err != nil {
+			fmt.Printf("error creating account: %v\n", err)
+			return
+		}
+	*/
 
-	err = services.CreateHashedAccountSample(ctx, pool)
+	err = services.UserLogInSample(ctx, pool)
 	if err != nil {
-		fmt.Printf("error creating account: %v\n", err)
+		fmt.Printf("error logging in: %v\n", err)
 		return
 	}
-
 }

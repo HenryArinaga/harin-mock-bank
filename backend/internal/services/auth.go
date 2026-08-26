@@ -11,13 +11,14 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type UserSignUp struct {
+type UserInformation struct {
+	ID       int64
 	Email    string
 	Password string
 	UserRole string
 }
 
-func SignUpUser(ctx context.Context, pool *pgxpool.Pool, input UserSignUp) error {
+func SignUpUser(ctx context.Context, pool *pgxpool.Pool, input UserInformation) error {
 	tx, err := pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin transaction: %w", err)
@@ -67,4 +68,64 @@ func SignUpUser(ctx context.Context, pool *pgxpool.Pool, input UserSignUp) error
 
 	return nil
 
+}
+
+func LogInUser(ctx context.Context, pool *pgxpool.Pool, input UserInformation) error {
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	queryEmail := `
+	SELECT id, email, password_hash, user_role
+	FROM users
+	WHERE email = @email`
+
+	args := pgx.NamedArgs{
+		"email": input.Email,
+		"id":    input.ID,
+	}
+
+	var userID int64
+	var email string
+	var storedPasswordHash string
+	var userRole string
+
+	row := tx.QueryRow(ctx, queryEmail, args)
+	err = row.Scan(
+		&userID,
+		&email,
+		&storedPasswordHash,
+		&userRole,
+	)
+	if err != nil {
+		return fmt.Errorf("unable to scan into row: %w", err)
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(storedPasswordHash), []byte(input.Password))
+	if err != nil {
+		return fmt.Errorf("invalid email or password")
+	}
+
+	updateLastLogin := `
+	UPDATE users
+	SET last_login_at = CURRENT_TIMESTAMP
+	WHERE id = @userID`
+
+	args = pgx.NamedArgs{
+		"userID": userID,
+	}
+
+	_, err = tx.Exec(ctx, updateLastLogin, args)
+	if err != nil {
+		return fmt.Errorf("update last login: %w", err)
+	}
+	err = tx.Commit(ctx)
+	if err != nil {
+		return fmt.Errorf("commit login: %w", err)
+	}
+	fmt.Printf("Success logging in\n")
+
+	return nil
 }
