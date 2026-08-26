@@ -59,8 +59,9 @@ func UpdatePendingTransferSample(ctx context.Context, pool *pgxpool.Pool) error 
 }
 
 func CompleteTransferSample(ctx context.Context, pool *pgxpool.Pool) error {
-	transactionID := int64(312)
-	customerID := int64(100)
+	transactionID := int64(315)
+	//use 79 for account id 2
+	customerID := int64(74)
 	input := CompleteTransferInput{
 		TransactionID: transactionID,
 		CustomerID:    customerID,

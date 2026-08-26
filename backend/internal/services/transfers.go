@@ -32,7 +32,7 @@ type CompleteTransferInput struct {
 	CustomerID    int64
 }
 
-func InitiateTransfer(ctx context.Context, pool *pgxpool.Pool, input MakeTransferInput) (int64, error) {
+func InitiateTransfer(ctx context.Context, db DBRunner, input MakeTransferInput) (int64, error) {
 	insertTransferSQL :=
 		`INSERT INTO transactions (
 		transaction_type, 
@@ -59,7 +59,7 @@ func InitiateTransfer(ctx context.Context, pool *pgxpool.Pool, input MakeTransfe
 		"transactionDescription": input.TransactionDescription,
 	}
 	var transactionID int64
-	row := pool.QueryRow(ctx, insertTransferSQL, args)
+	row := db.QueryRow(ctx, insertTransferSQL, args)
 	err := row.Scan(&transactionID)
 	if err != nil {
 		return 0, fmt.Errorf("unable to insert row: %w", err)
