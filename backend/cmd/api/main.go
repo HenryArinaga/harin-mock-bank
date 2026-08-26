@@ -73,9 +73,9 @@ func main() {
 	/*
 		err = services.CompleteTransferSample(ctx, pool)
 		if err != nil {
-			fmt.Printf("error completing transfer: %v", err)
+			fmt.Printf("error completing transfer: %v\n", err)
 			return
 		}
 	*/
-	return
+
 }

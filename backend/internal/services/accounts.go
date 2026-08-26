@@ -153,3 +153,29 @@ func EnsureAccountActive(ctx context.Context, db DBRunner, accountID int64) erro
 	}
 	return nil
 }
+
+func EnsureAccountOwnerValid(ctx context.Context, db DBRunner, fromAccountID int64, customerID int64) error {
+	accountOwner := `
+	SELECT EXISTS (
+	SELECT 1 
+	FROM accounts
+	WHERE id = @fromAccountId
+	AND customer_id = @customerID
+	)`
+	args := pgx.NamedArgs{
+		"fromAccountId": fromAccountID,
+		"customerID":    customerID,
+	}
+	var accountOwnerCheck bool
+	row := db.QueryRow(ctx, accountOwner, args)
+	err := row.Scan(
+		&accountOwnerCheck,
+	)
+	if err != nil {
+		return err
+	}
+	if !accountOwnerCheck {
+		return fmt.Errorf("customer is not account owner")
+	}
+	return nil
+}

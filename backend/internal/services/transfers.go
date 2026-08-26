@@ -27,6 +27,11 @@ type GetTransferStatus struct {
 	TransactionStatus      string
 }
 
+type CompleteTransferInput struct {
+	TransactionID int64
+	CustomerID    int64
+}
+
 func InitiateTransfer(ctx context.Context, pool *pgxpool.Pool, input MakeTransferInput) (int64, error) {
 	insertTransferSQL :=
 		`INSERT INTO transactions (
@@ -208,10 +213,10 @@ func failTransfer(ctx context.Context, tx pgx.Tx, transactionID int64, originalE
 	if commitErr != nil {
 		return commitErr
 	}
-	return failErr
+	return originalErr
 }
 
-func CompleteTransfer(ctx context.Context, pool *pgxpool.Pool, transactionID int64) error {
+func CompleteTransfer(ctx context.Context, pool *pgxpool.Pool, input CompleteTransferInput) error {
 	tx, err := pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin transaction: %w", err)
@@ -223,11 +228,52 @@ func CompleteTransfer(ctx context.Context, pool *pgxpool.Pool, transactionID int
 		}
 	}()
 
-	transaction, err := GetPendingTransferByID(ctx, tx, transactionID)
+	transaction, err := GetPendingTransferByID(ctx, tx, input.TransactionID)
 	if err != nil {
 		return err
 	}
-	input := LedgerInfo{
+
+	accountOwnerErr := EnsureAccountOwnerValid(ctx, tx, transaction.FromAccountID, input.CustomerID)
+	if accountOwnerErr != nil {
+		return failTransfer(ctx, tx, input.TransactionID, accountOwnerErr)
+	}
+
+	fromAccountCheckErr := EnsureAccountExists(ctx, tx, transaction.FromAccountID)
+	if fromAccountCheckErr != nil {
+		return failTransfer(ctx, tx, input.TransactionID, fromAccountCheckErr)
+	}
+
+	toAccountCheckErr := EnsureAccountExists(ctx, tx, transaction.ToAccountID)
+	if toAccountCheckErr != nil {
+		return failTransfer(ctx, tx, input.TransactionID, toAccountCheckErr)
+	}
+
+	fromActiveAccountErr := EnsureAccountActive(ctx, tx, transaction.FromAccountID)
+	if fromActiveAccountErr != nil {
+		return failTransfer(ctx, tx, input.TransactionID, fromActiveAccountErr)
+	}
+
+	toActiveAccountErr := EnsureAccountActive(ctx, tx, transaction.ToAccountID)
+	if toActiveAccountErr != nil {
+		return failTransfer(ctx, tx, input.TransactionID, toActiveAccountErr)
+	}
+
+	fromAccountCurrencyErr := EnsureCorrectCurrency(ctx, tx, transaction.FromAccountID, transaction.Currency)
+	if fromAccountCurrencyErr != nil {
+		return failTransfer(ctx, tx, input.TransactionID, fromAccountCurrencyErr)
+	}
+
+	toAccountCurrencyErr := EnsureCorrectCurrency(ctx, tx, transaction.ToAccountID, transaction.Currency)
+	if toAccountCurrencyErr != nil {
+		return failTransfer(ctx, tx, input.TransactionID, toAccountCurrencyErr)
+	}
+
+	validationErr := EnsureSufficientBalance(ctx, tx, transaction.FromAccountID, transaction.Amount)
+	if validationErr != nil {
+		return failTransfer(ctx, tx, input.TransactionID, validationErr)
+	}
+
+	debitEntry := LedgerInfo{
 		AccountID:     transaction.FromAccountID,
 		TransactionID: transaction.TransactionID,
 		Direction:     "debit",
@@ -235,66 +281,24 @@ func CompleteTransfer(ctx context.Context, pool *pgxpool.Pool, transactionID int
 		Amount:        transaction.Amount,
 	}
 
-	fromAccountCheckErr := EnsureAccountExists(ctx, tx, transaction.FromAccountID)
-	if fromAccountCheckErr != nil {
-		failTransfer(ctx, tx, transactionID, fromAccountCheckErr)
-		return fromAccountCheckErr
-	}
-
-	toAccountCheckErr := EnsureAccountExists(ctx, tx, transaction.ToAccountID)
-	if toAccountCheckErr != nil {
-		failTransfer(ctx, tx, transactionID, toAccountCheckErr)
-		return toAccountCheckErr
-	}
-
-	fromActiveAccountErr := EnsureAccountActive(ctx, tx, transaction.FromAccountID)
-	if fromActiveAccountErr != nil {
-		failTransfer(ctx, tx, transactionID, fromActiveAccountErr)
-		return fromActiveAccountErr
-	}
-
-	toActiveAccountErr := EnsureAccountActive(ctx, tx, transaction.ToAccountID)
-	if toActiveAccountErr != nil {
-		failTransfer(ctx, tx, transactionID, toActiveAccountErr)
-		return toActiveAccountErr
-	}
-
-	fromAccountCurrencyErr := EnsureCorrectCurrency(ctx, tx, transaction.FromAccountID, transaction.Currency)
-	if fromAccountCurrencyErr != nil {
-		failTransfer(ctx, tx, transactionID, fromAccountCurrencyErr)
-		return fromAccountCurrencyErr
-	}
-
-	toAccountCurrencyErr := EnsureCorrectCurrency(ctx, tx, transaction.ToAccountID, transaction.Currency)
-	if toAccountCurrencyErr != nil {
-		failTransfer(ctx, tx, transactionID, toAccountCurrencyErr)
-		return toAccountCurrencyErr
-	}
-
-	validationErr := EnsureSufficientBalance(ctx, tx, transaction.FromAccountID, transaction.Amount)
-	if validationErr != nil {
-		failTransfer(ctx, tx, transactionID, validationErr)
-		return validationErr
-	}
-
-	err = InsertLedgerTransaction(ctx, tx, input)
+	err = InsertLedgerTransaction(ctx, tx, debitEntry)
 	if err != nil {
 		return err
 	}
 
-	input2 := LedgerInfo{
+	creditEntry := LedgerInfo{
 		AccountID:     transaction.ToAccountID,
 		TransactionID: transaction.TransactionID,
 		Direction:     "credit",
 		Currency:      transaction.Currency,
 		Amount:        transaction.Amount,
 	}
-	err = InsertLedgerTransaction(ctx, tx, input2)
+	err = InsertLedgerTransaction(ctx, tx, creditEntry)
 	if err != nil {
 		return err
 	}
 
-	err = UpdatePendingTransfer(ctx, tx, transactionID)
+	err = UpdatePendingTransfer(ctx, tx, input.TransactionID)
 	if err != nil {
 		return err
 	}
