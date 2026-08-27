@@ -8,7 +8,7 @@ import (
 
 func CreateHashedAccountSample(ctx context.Context, pool *pgxpool.Pool) error {
 	input := SignUpUserInput{
-		Email:    "test@gmail.com",
+		Email:    "test1@gmail.com",
 		Password: "123456",
 		UserRole: "customer",
 	}
@@ -21,7 +21,7 @@ func CreateHashedAccountSample(ctx context.Context, pool *pgxpool.Pool) error {
 
 func UserLogInSample(ctx context.Context, pool *pgxpool.Pool) error {
 	input := LoginUserInput{
-		Email:    "test@gmail.com",
+		Email:    "test1@gmail.com",
 		Password: "12345",
 	}
 	_, err := LogInUser(ctx, pool, input)
