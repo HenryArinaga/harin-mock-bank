@@ -11,14 +11,24 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type UserInformation struct {
-	ID       int64
+type SignUpUserInput struct {
 	Email    string
 	Password string
 	UserRole string
 }
 
-func SignUpUser(ctx context.Context, pool *pgxpool.Pool, input UserInformation) error {
+type LoginUserInput struct {
+	Email    string
+	Password string
+}
+
+type AuthenticatedUser struct {
+	ID       int64
+	Email    string
+	UserRole string
+}
+
+func SignUpUser(ctx context.Context, pool *pgxpool.Pool, input SignUpUserInput) error {
 	tx, err := pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin transaction: %w", err)
@@ -70,10 +80,10 @@ func SignUpUser(ctx context.Context, pool *pgxpool.Pool, input UserInformation) 
 
 }
 
-func LogInUser(ctx context.Context, pool *pgxpool.Pool, input UserInformation) error {
+func LogInUser(ctx context.Context, pool *pgxpool.Pool, input LoginUserInput) (AuthenticatedUser, error) {
 	tx, err := pool.Begin(ctx)
 	if err != nil {
-		return fmt.Errorf("begin transaction: %w", err)
+		return AuthenticatedUser{}, fmt.Errorf("begin transaction: %w", err)
 	}
 	defer tx.Rollback(ctx)
 
@@ -84,7 +94,6 @@ func LogInUser(ctx context.Context, pool *pgxpool.Pool, input UserInformation) e
 
 	args := pgx.NamedArgs{
 		"email": input.Email,
-		"id":    input.ID,
 	}
 
 	var userID int64
@@ -100,12 +109,12 @@ func LogInUser(ctx context.Context, pool *pgxpool.Pool, input UserInformation) e
 		&userRole,
 	)
 	if err != nil {
-		return fmt.Errorf("unable to scan into row: %w", err)
+		return AuthenticatedUser{}, fmt.Errorf("unable to scan into row: %w", err)
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(storedPasswordHash), []byte(input.Password))
 	if err != nil {
-		return fmt.Errorf("invalid email or password")
+		return AuthenticatedUser{}, fmt.Errorf("invalid email or password")
 	}
 
 	updateLastLogin := `
@@ -119,13 +128,17 @@ func LogInUser(ctx context.Context, pool *pgxpool.Pool, input UserInformation) e
 
 	_, err = tx.Exec(ctx, updateLastLogin, args)
 	if err != nil {
-		return fmt.Errorf("update last login: %w", err)
+		return AuthenticatedUser{}, fmt.Errorf("update last login: %w", err)
 	}
 	err = tx.Commit(ctx)
 	if err != nil {
-		return fmt.Errorf("commit login: %w", err)
+		return AuthenticatedUser{}, fmt.Errorf("commit login: %w", err)
 	}
 	fmt.Printf("Success logging in\n")
 
-	return nil
+	return AuthenticatedUser{
+		ID:       userID,
+		Email:    email,
+		UserRole: userRole,
+	}, nil
 }

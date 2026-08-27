@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"harin-mock-bank/backend/internal/db"
-	"harin-mock-bank/backend/internal/services"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -85,10 +84,10 @@ func main() {
 			return
 		}
 	*/
-
-	err = services.UserLogInSample(ctx, pool)
-	if err != nil {
-		fmt.Printf("error logging in: %v\n", err)
-		return
-	}
+	/*
+		err = services.UserLogInSample(ctx, pool)
+		if err != nil {
+			fmt.Printf("error logging in: %v\n", err)
+			return
+		} */
 }

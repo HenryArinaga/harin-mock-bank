@@ -5,6 +5,7 @@ CREATE TABLE users (
     user_role VARCHAR(30) NOT NULL DEFAULT 'customer',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_login_at TIMESTAMP NULL
 
     CONSTRAINT users_role_check
         CHECK (user_role IN ('customer','admin','support'))
