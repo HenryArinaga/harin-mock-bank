@@ -12,7 +12,7 @@ func CreateHashedAccountSample(ctx context.Context, pool *pgxpool.Pool) error {
 		Password: "123456",
 		UserRole: "customer",
 	}
-	err := SignUpUser(ctx, pool, input)
+	_, err := SignUpUser(ctx, pool, input)
 	if err != nil {
 		return err
 	}

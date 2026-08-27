@@ -28,10 +28,10 @@ type AuthenticatedUser struct {
 	UserRole string
 }
 
-func SignUpUser(ctx context.Context, pool *pgxpool.Pool, input SignUpUserInput) error {
+func SignUpUser(ctx context.Context, pool *pgxpool.Pool, input SignUpUserInput) (int64, error) {
 	tx, err := pool.Begin(ctx)
 	if err != nil {
-		return fmt.Errorf("begin transaction: %w", err)
+		return 0, fmt.Errorf("begin transaction: %w", err)
 	}
 	defer tx.Rollback(ctx)
 
@@ -57,7 +57,7 @@ func SignUpUser(ctx context.Context, pool *pgxpool.Pool, input SignUpUserInput) 
 	}
 
 	if err != nil {
-		return fmt.Errorf("hash password: %w", err)
+		return 0, fmt.Errorf("hash password: %w", err)
 	}
 
 	var userID int64
@@ -66,17 +66,17 @@ func SignUpUser(ctx context.Context, pool *pgxpool.Pool, input SignUpUserInput) 
 	err = row.Scan(&userID)
 	if err != nil {
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			return fmt.Errorf("email already exists")
+			return 0, fmt.Errorf("email already exists")
 		}
-		return fmt.Errorf("failed to insert user: %w", err)
+		return 0, fmt.Errorf("failed to insert user: %w", err)
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
+		return 0, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
-	return nil
+	return userID, nil
 
 }
 

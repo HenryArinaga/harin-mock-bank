@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -22,6 +23,34 @@ func PrintCustomerBalanceSample(ctx context.Context, pool *pgxpool.Pool) error {
 			firstCustomer.LastName,
 			firstCustomer.Email,
 			string(firstCustomer.BalancesByCurrency))
+	}
+	return nil
+}
+
+func CreateCustomerProfileSample(ctx context.Context, pool *pgxpool.Pool) error {
+	email := fmt.Sprintf("test-%d@gmail.com", time.Now().UnixNano())
+
+	signUp := SignUpUserInput{
+		Email:    email,
+		Password: "123456",
+		UserRole: "customer",
+	}
+
+	userID, err := SignUpUser(ctx, pool, signUp)
+	if err != nil {
+		return err
+	}
+
+	input := CustomerProfileInformation{
+		UserID:    userID,
+		FirstName: "Henry",
+		LastName:  "Arinaga",
+		Phone:     "6614265690",
+		DOB:       "1999-02-18",
+	}
+	_, err = CreateCustomerProfile(ctx, pool, input)
+	if err != nil {
+		return err
 	}
 	return nil
 }

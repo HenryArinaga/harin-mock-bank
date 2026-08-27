@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"harin-mock-bank/backend/internal/db"
+	"harin-mock-bank/backend/internal/services"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -90,4 +91,10 @@ func main() {
 			fmt.Printf("error logging in: %v\n", err)
 			return
 		} */
+
+	err = services.CreateCustomerProfileSample(ctx, pool)
+	if err != nil {
+		fmt.Printf("error creating customer profile: %v\n", err)
+		return
+	}
 }
