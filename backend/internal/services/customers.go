@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -22,6 +23,15 @@ type CustomerProfileInformation struct {
 	LastName  string
 	Phone     string
 	DOB       string
+}
+
+type CustomerProfile struct {
+	ID        int64
+	UserID    int64
+	FirstName string
+	LastName  string
+	Phone     string
+	DOB       time.Time
 }
 
 func ListCustomerBalances(ctx context.Context, pool *pgxpool.Pool) ([]CustomerBalance, error) {
@@ -88,5 +98,36 @@ func CreateCustomerProfile(ctx context.Context, db DBRunner, input CustomerProfi
 	}
 
 	return customerID, nil
+
+}
+
+func GetCustomerProfileByUserID(ctx context.Context, db DBRunner, userID int64) (CustomerProfile, error) {
+	customerProfilesQuery := `
+	SELECT 
+	id, 
+	user_id, 
+	first_name, 
+	last_name, 
+	phone, 
+	date_of_birth 
+	FROM customers 
+	WHERE user_id = @userID`
+	args := pgx.NamedArgs{
+		"userID": userID,
+	}
+	var customer CustomerProfile
+	row := db.QueryRow(ctx, customerProfilesQuery, args)
+	err := row.Scan(
+		&customer.ID,
+		&customer.UserID,
+		&customer.FirstName,
+		&customer.LastName,
+		&customer.Phone,
+		&customer.DOB,
+	)
+	if err != nil {
+		return CustomerProfile{}, fmt.Errorf("get customer profile by user id: %w", err)
+	}
+	return customer, nil
 
 }

@@ -54,3 +54,13 @@ func CreateCustomerProfileSample(ctx context.Context, pool *pgxpool.Pool) error 
 	}
 	return nil
 }
+
+func GetCustomerProfileByUserIDSample(ctx context.Context, pool *pgxpool.Pool) error {
+
+	profile, err := GetCustomerProfileByUserID(ctx, pool, 130)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Profile is %v\n", profile)
+	return nil
+}

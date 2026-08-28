@@ -91,10 +91,16 @@ func main() {
 			fmt.Printf("error logging in: %v\n", err)
 			return
 		} */
-
-	err = services.CreateCustomerProfileSample(ctx, pool)
+	/*
+		err = services.CreateCustomerProfileSample(ctx, pool)
+		if err != nil {
+			fmt.Printf("error creating customer profile: %v\n", err)
+			return
+		}
+	*/
+	err = services.GetCustomerProfileByUserIDSample(ctx, pool)
 	if err != nil {
-		fmt.Printf("error creating customer profile: %v\n", err)
+		fmt.Printf("error getting customer profile: %v\n", err)
 		return
 	}
 }
