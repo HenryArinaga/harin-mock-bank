@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"harin-mock-bank/backend/internal/db"
-	"harin-mock-bank/backend/internal/services"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -98,9 +97,11 @@ func main() {
 			return
 		}
 	*/
-	err = services.GetCustomerProfileByUserIDSample(ctx, pool)
-	if err != nil {
-		fmt.Printf("error getting customer profile: %v\n", err)
-		return
-	}
+	/*
+		err = services.GetCustomerProfileByUserIDSample(ctx, pool)
+		if err != nil {
+			fmt.Printf("error getting customer profile: %v\n", err)
+			return
+		}
+	*/
 }

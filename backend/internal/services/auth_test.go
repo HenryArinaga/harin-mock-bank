@@ -41,19 +41,19 @@ func TestSignUpPassLogInPass(t *testing.T) {
 		Password: "123456",
 	}
 
-	authenticatedUser, err := LogInUser(ctx, pool, logIn)
+	LoginResult, err := LogInUser(ctx, pool, logIn)
 	if err != nil {
 		t.Fatalf("error logging in: %v", err)
 	}
-	if authenticatedUser.Email != email {
-		t.Fatalf("expected email %s, got %s", email, authenticatedUser.Email)
+	if LoginResult.User.Email != email {
+		t.Fatalf("expected email %s, got %s", email, LoginResult.User.Email)
 	}
 
-	if authenticatedUser.UserRole != "customer" {
-		t.Fatalf("expected user role customer, got %s", authenticatedUser.UserRole)
+	if LoginResult.User.UserRole != "customer" {
+		t.Fatalf("expected user role customer, got %s", LoginResult.User.UserRole)
 	}
 
-	if authenticatedUser.ID == 0 {
+	if LoginResult.User.ID == 0 {
 		t.Fatalf("expected authenticated user ID to be set")
 	}
 }
@@ -171,19 +171,22 @@ func TestLogInPass(t *testing.T) {
 		Password: "123456",
 	}
 
-	authenticatedUser, err := LogInUser(ctx, pool, logIn)
+	LoginResult, err := LogInUser(ctx, pool, logIn)
 	if err != nil {
 		t.Fatalf("error logging in: %v", err)
 	}
-	if authenticatedUser.Email != logIn.Email {
-		t.Fatalf("expected email %s, got %s", logIn.Email, authenticatedUser.Email)
+	if LoginResult.Token == "" {
+		t.Fatalf("empty token: %s", err)
+	}
+	if LoginResult.User.Email != logIn.Email {
+		t.Fatalf("expected email %s, got %s", logIn.Email, LoginResult.User.Email)
 	}
 
-	if authenticatedUser.UserRole != "customer" {
-		t.Fatalf("expected user role customer, got %s", authenticatedUser.UserRole)
+	if LoginResult.User.UserRole != "customer" {
+		t.Fatalf("expected user role customer, got %s", LoginResult.User.UserRole)
 	}
 
-	if authenticatedUser.ID == 0 {
+	if LoginResult.User.ID == 0 {
 		t.Fatalf("expected authenticated user ID to be set")
 	}
 

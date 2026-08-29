@@ -131,3 +131,28 @@ func GetCustomerProfileByUserID(ctx context.Context, db DBRunner, userID int64) 
 	return customer, nil
 
 }
+
+/*
+func RegisterCustomer(ctx context.Context, pool *pgxpool.Pool) error {
+
+	email := fmt.Sprintf("test-%d@gmail.com", time.Now().UnixNano())
+
+	input := SignUpUserInput{
+		Email:    email,
+		Password: "123456",
+		UserRole: "customer",
+	}
+
+	_, err := SignUpUser(ctx, pool, input)
+	if err != nil {
+		return err
+	}
+
+	_, err = CreateCustomerProfile(ctx, pool, customerInput)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+*/
