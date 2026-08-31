@@ -148,7 +148,6 @@ func LogInUser(ctx context.Context, pool *pgxpool.Pool, input LoginUserInput) (L
 	if err != nil {
 		return LoginResult{}, fmt.Errorf("commit login: %w", err)
 	}
-	fmt.Printf("Success logging in\n")
 
 	return LoginResult{
 		User:  authenticatedUser,

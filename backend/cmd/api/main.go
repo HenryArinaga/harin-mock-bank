@@ -89,7 +89,10 @@ func main() {
 		if err != nil {
 			fmt.Printf("error logging in: %v\n", err)
 			return
-		} */
+		}
+			fmt.Printf("Success logging in\n")
+	*/
+
 	/*
 		err = services.CreateCustomerProfileSample(ctx, pool)
 		if err != nil {
