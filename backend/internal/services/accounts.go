@@ -179,3 +179,18 @@ func EnsureAccountOwnerValid(ctx context.Context, db DBRunner, fromAccountID int
 	}
 	return nil
 }
+
+func ListMyAccounts(ctx context.Context, pool *pgxpool.Pool, tokenString string) ([]CustomerAccount, error) {
+
+	validateAccount, err := GetCustomerProfileByJWT(ctx, pool, tokenString)
+	if err != nil {
+		return nil, err
+	}
+
+	accounts, err := ListAccountsByCustomer(ctx, pool, validateAccount.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return accounts, nil
+}
