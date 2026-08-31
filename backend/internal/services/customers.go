@@ -132,6 +132,20 @@ func GetCustomerProfileByUserID(ctx context.Context, db DBRunner, userID int64) 
 
 }
 
+func GetCustomerProfileByJWT(ctx context.Context, db DBRunner, tokenString string) (CustomerProfile, error) {
+	authenticatedUser, err := ValidateAuthToken(tokenString)
+	if err != nil {
+		return CustomerProfile{}, err
+	}
+
+	customerProfile, err := GetCustomerProfileByUserID(ctx, db, authenticatedUser.ID)
+	if err != nil {
+		return CustomerProfile{}, err
+	}
+
+	return customerProfile, nil
+}
+
 /*
 func RegisterCustomer(ctx context.Context, pool *pgxpool.Pool) error {
 

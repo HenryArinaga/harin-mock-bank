@@ -79,9 +79,21 @@ func TestSignUpPassLogInPassJWTPass(t *testing.T) {
 		UserRole: "customer",
 	}
 
-	_, err = SignUpUser(ctx, pool, signUp)
+	userID, err := SignUpUser(ctx, pool, signUp)
 	if err != nil {
 		t.Fatalf("Error Signing Up: %v\n", err)
+	}
+
+	customerInput := CustomerProfileInformation{
+		UserID:    userID,
+		FirstName: "Henry",
+		LastName:  "Arinaga",
+		Phone:     "6614265690",
+		DOB:       "1999-02-18",
+	}
+	_, err = CreateCustomerProfile(ctx, pool, customerInput)
+	if err != nil {
+		t.Fatalf("Error:: %v\n", err)
 	}
 
 	logIn := LoginUserInput{
@@ -122,6 +134,14 @@ func TestSignUpPassLogInPassJWTPass(t *testing.T) {
 	}
 	if validatedUser.UserRole != loginResult.User.UserRole {
 		t.Fatalf("User role incorrect")
+	}
+
+	customerProfile, err := GetCustomerProfileByJWT(ctx, pool, loginResult.Token)
+	if err != nil {
+		t.Fatalf("%v\n", err)
+	}
+	if customerProfile.UserID != loginResult.User.ID {
+		t.Fatalf("User ID mismatch")
 	}
 
 }
