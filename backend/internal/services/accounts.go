@@ -3,11 +3,13 @@ package services
 import (
 	"context"
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"math/big"
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -210,12 +212,15 @@ func ListMyAccounts(ctx context.Context, pool *pgxpool.Pool, tokenString string)
 }
 
 func CreateAccount(ctx context.Context, db DBRunner, input CustomerAccount) (int64, error) {
-	accountNumber, err := GenerateAccountNumber()
-	if err != nil {
-		return 0, err
-	}
+	var accountID int64
+	var pgErr *pgconn.PgError
+	for attempts := 0; attempts < 5; attempts++ {
+		accountNumber, err := GenerateAccountNumber()
+		if err != nil {
+			return 0, err
+		}
 
-	insertAccountInformation := `
+		insertAccountInformation := `
 	INSERT into accounts (
 	customer_id,
 	currency,
@@ -230,18 +235,22 @@ func CreateAccount(ctx context.Context, db DBRunner, input CustomerAccount) (int
 	)
 	RETURNING id`
 
-	args := pgx.NamedArgs{
-		"customerID":    input.CustomerID,
-		"currency":      input.Currency,
-		"accountType":   input.AccountType,
-		"accountNumber": accountNumber,
-	}
-	var accountID int64
-	row := db.QueryRow(ctx, insertAccountInformation, args)
-	err = row.Scan(&accountID)
-	if err != nil {
-		return 0, fmt.Errorf("unable to create account: %w\n", err)
-	}
+		args := pgx.NamedArgs{
+			"customerID":    input.CustomerID,
+			"currency":      input.Currency,
+			"accountType":   input.AccountType,
+			"accountNumber": accountNumber,
+		}
 
-	return accountID, nil
+		row := db.QueryRow(ctx, insertAccountInformation, args)
+		err = row.Scan(&accountID)
+		if err != nil {
+			if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+				continue
+			}
+			return 0, fmt.Errorf("unable to generate unique account number")
+		}
+		return accountID, nil
+	}
+	return 0, fmt.Errorf("unable to generate unique account number")
 }
