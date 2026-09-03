@@ -2,7 +2,9 @@ package services
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
+	"math/big"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -32,6 +34,18 @@ type TransactionsByAccount struct {
 	Currency               string
 	Amount                 string
 	CreatedAt              time.Time
+}
+
+func GenerateAccountNumber() (string, error) {
+	limit := big.NewInt(9000000000)
+	n, err := rand.Int(rand.Reader, limit)
+	if err != nil {
+		return "", err
+	}
+
+	n.Add(n, big.NewInt(1000000000))
+
+	return n.String(), nil
 }
 
 func ListAccountsByCustomer(ctx context.Context, pool *pgxpool.Pool, customerID int64) ([]CustomerAccount, error) {
@@ -193,4 +207,41 @@ func ListMyAccounts(ctx context.Context, pool *pgxpool.Pool, tokenString string)
 	}
 
 	return accounts, nil
+}
+
+func CreateAccount(ctx context.Context, db DBRunner, input CustomerAccount) (int64, error) {
+	accountNumber, err := GenerateAccountNumber()
+	if err != nil {
+		return 0, err
+	}
+
+	insertAccountInformation := `
+	INSERT into accounts (
+	customer_id,
+	currency,
+	account_type,
+	account_number
+	)
+	VALUES (
+	@customerID,
+	@currency,
+	@accountType,
+	@accountNumber
+	)
+	RETURNING id`
+
+	args := pgx.NamedArgs{
+		"customerID":    input.CustomerID,
+		"currency":      input.Currency,
+		"accountType":   input.AccountType,
+		"accountNumber": accountNumber,
+	}
+	var accountID int64
+	row := db.QueryRow(ctx, insertAccountInformation, args)
+	err = row.Scan(&accountID)
+	if err != nil {
+		return 0, fmt.Errorf("unable to create account: %w\n", err)
+	}
+
+	return accountID, nil
 }
