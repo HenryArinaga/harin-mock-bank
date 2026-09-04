@@ -254,3 +254,23 @@ func CreateAccount(ctx context.Context, db DBRunner, input CustomerAccount) (int
 	}
 	return 0, fmt.Errorf("unable to generate unique account number")
 }
+
+func UpdatePendingAccountActiive(ctx context.Context, db DBRunner, accountID int64) error {
+	updateAccountbyID := `
+	UPDATE accounts
+	SET account_status = 'active'
+	WHERE id = @id
+	AND account_status = 'pending'`
+
+	args := pgx.NamedArgs{
+		"id": accountID,
+	}
+	commandTag, err := db.Exec(ctx, updateAccountbyID, args)
+	if err != nil {
+		return err
+	}
+	if commandTag.RowsAffected() < 1 {
+		return errors.New("no pending accounts found to make active")
+	}
+	return nil
+}
