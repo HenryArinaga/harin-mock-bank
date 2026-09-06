@@ -109,7 +109,7 @@ func main() {
 		}
 	*/
 
-	err = services.UpdatePendingAccountActiiveSample(ctx, pool)
+	err = services.UpdateAccountStatusSample(ctx, pool)
 	if err != nil {
 		fmt.Printf("error updating account status:  %v\n", err)
 		return

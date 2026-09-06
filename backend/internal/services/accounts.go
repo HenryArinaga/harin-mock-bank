@@ -38,6 +38,12 @@ type TransactionsByAccount struct {
 	CreatedAt              time.Time
 }
 
+type AccountStatusUpdate struct {
+	AccountID     int64
+	CurrentStatus string
+	NewStatus     string
+}
+
 func GenerateAccountNumber() (string, error) {
 	limit := big.NewInt(9000000000)
 	n, err := rand.Int(rand.Reader, limit)
@@ -255,22 +261,24 @@ func CreateAccount(ctx context.Context, db DBRunner, input CustomerAccount) (int
 	return 0, fmt.Errorf("unable to generate unique account number")
 }
 
-func UpdatePendingAccountActive(ctx context.Context, db DBRunner, accountID int64) error {
+func UpdateAccountStatus(ctx context.Context, db DBRunner, input AccountStatusUpdate) error {
 	updateAccountbyID := `
 	UPDATE accounts
-	SET account_status = 'active'
+	SET account_status = @newStatus
 	WHERE id = @id
-	AND account_status = 'pending'`
+	AND account_status = @currentStatus`
 
 	args := pgx.NamedArgs{
-		"id": accountID,
+		"newStatus":     input.NewStatus,
+		"id":            input.AccountID,
+		"currentStatus": input.CurrentStatus,
 	}
 	commandTag, err := db.Exec(ctx, updateAccountbyID, args)
 	if err != nil {
 		return err
 	}
 	if commandTag.RowsAffected() < 1 {
-		return errors.New("no pending accounts found to make active")
+		return errors.New("no accounts found to update status")
 	}
 	return nil
 }
