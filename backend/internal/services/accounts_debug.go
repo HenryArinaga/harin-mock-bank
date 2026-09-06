@@ -55,9 +55,9 @@ func PrintTransactionByAccountSample(ctx context.Context, pool *pgxpool.Pool) er
 
 func UpdateAccountStatusSample(ctx context.Context, pool *pgxpool.Pool) error {
 	input := AccountStatusUpdate{
-		NewStatus:     "frozen",
+		NewStatus:     "active",
 		AccountID:     166,
-		CurrentStatus: "active",
+		CurrentStatus: "frozen",
 	}
 	err := UpdateAccountStatus(ctx, pool, input)
 	if err != nil {

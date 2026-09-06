@@ -44,6 +44,27 @@ type AccountStatusUpdate struct {
 	NewStatus     string
 }
 
+var allowedAccountStatusTransitions = map[string][]string{
+	"pending":   {"active", "frozen", "suspended", "closed"},
+	"active":    {"frozen", "suspended", "closed"},
+	"frozen":    {"active", "suspended", "closed"},
+	"suspended": {"active", "frozen", "closed"},
+	"closed":    {},
+}
+
+func isAccountStatusTransitionAllowed(currentStatus string, newStatus string) bool {
+	allowedNewStatus, ok := allowedAccountStatusTransitions[currentStatus]
+	if !ok {
+		return false
+	}
+	for _, allowedStatus := range allowedNewStatus {
+		if allowedStatus == newStatus {
+			return true
+		}
+	}
+	return false
+}
+
 func GenerateAccountNumber() (string, error) {
 	limit := big.NewInt(9000000000)
 	n, err := rand.Int(rand.Reader, limit)
@@ -262,6 +283,16 @@ func CreateAccount(ctx context.Context, db DBRunner, input CustomerAccount) (int
 }
 
 func UpdateAccountStatus(ctx context.Context, db DBRunner, input AccountStatusUpdate) error {
+
+	allowed := isAccountStatusTransitionAllowed(input.CurrentStatus, input.NewStatus)
+
+	if !allowed {
+		return fmt.Errorf("invalid account status transition from %s to %s", input.CurrentStatus, input.NewStatus)
+	}
+	if !allowed {
+		return fmt.Errorf("invalid account status transition from %s to %s", input.CurrentStatus, input.NewStatus)
+	}
+
 	updateAccountbyID := `
 	UPDATE accounts
 	SET account_status = @newStatus
