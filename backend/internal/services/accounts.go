@@ -52,12 +52,32 @@ var allowedAccountStatusTransitions = map[string][]string{
 	"closed":    {},
 }
 
+var allowedUserRole = map[string][]string{
+	"admin":    {"active", "frozen", "suspended", "closed"},
+	"support":  {"active", "frozen", "suspended"},
+	"customer": {},
+}
+
+// helper functions for other functions in this file
 func isAccountStatusTransitionAllowed(currentStatus string, newStatus string) bool {
 	allowedNewStatus, ok := allowedAccountStatusTransitions[currentStatus]
 	if !ok {
 		return false
 	}
 	for _, allowedStatus := range allowedNewStatus {
+		if allowedStatus == newStatus {
+			return true
+		}
+	}
+	return false
+}
+
+func isAllowedToChangeStatusOfAccount(userRole string, newStatus string) bool {
+	userRoleAllowed, ok := allowedUserRole[userRole]
+	if !ok {
+		return false
+	}
+	for _, allowedStatus := range userRoleAllowed {
 		if allowedStatus == newStatus {
 			return true
 		}
@@ -330,7 +350,12 @@ func UpdateAccountStatus(ctx context.Context, db DBRunner, input AccountStatusUp
 	return nil
 }
 
-func ChangeAccountStatus(ctx context.Context, db DBRunner, accountID int64, newStatus string) error {
+func ChangeAccountStatus(ctx context.Context, db DBRunner, accountID int64, newStatus string, userRole string) error {
+	rolePermissionCheck := isAllowedToChangeStatusOfAccount(userRole, newStatus)
+	if !rolePermissionCheck {
+		return errors.New("user permissions not allowed to change account status")
+	}
+
 	accountStatus, err := GetAccountStatusByID(ctx, db, accountID)
 	if err != nil {
 		return err
