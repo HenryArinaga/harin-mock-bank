@@ -38,10 +38,11 @@ type TransactionsByAccount struct {
 	CreatedAt              time.Time
 }
 
-type AccountStatusUpdate struct {
+type accountStatusUpdate struct {
 	AccountID     int64
 	CurrentStatus string
 	NewStatus     string
+	UserRole      string
 }
 
 var allowedAccountStatusTransitions = map[string][]string{
@@ -321,7 +322,8 @@ func GetAccountStatusByID(ctx context.Context, db DBRunner, accountID int64) (st
 	return status, nil
 }
 
-func UpdateAccountStatus(ctx context.Context, db DBRunner, input AccountStatusUpdate) error {
+// lower case function to make it harder to misuse
+func updateAccountStatus(ctx context.Context, db DBRunner, input accountStatusUpdate) error {
 
 	allowed := isAccountStatusTransitionAllowed(input.CurrentStatus, input.NewStatus)
 
@@ -361,13 +363,13 @@ func ChangeAccountStatus(ctx context.Context, db DBRunner, accountID int64, newS
 		return err
 	}
 
-	accountUpdate := AccountStatusUpdate{
+	accountUpdate := accountStatusUpdate{
 		AccountID:     accountID,
 		CurrentStatus: accountStatus,
 		NewStatus:     newStatus,
 	}
 
-	err = UpdateAccountStatus(ctx, db, accountUpdate)
+	err = updateAccountStatus(ctx, db, accountUpdate)
 	if err != nil {
 		return err
 	}

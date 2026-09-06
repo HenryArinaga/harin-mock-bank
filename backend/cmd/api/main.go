@@ -113,4 +113,11 @@ func main() {
 			fmt.Printf("error updating account status:  %v\n", err)
 			return
 		} */
+	/*
+		err = services.ChangeAccountStatusSample(ctx, pool)
+		if err != nil {
+			fmt.Printf("error updating account status:  %v\n", err)
+			return
+		}
+	*/
 }

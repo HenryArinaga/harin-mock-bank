@@ -54,15 +54,30 @@ func PrintTransactionByAccountSample(ctx context.Context, pool *pgxpool.Pool) er
 }
 
 func UpdateAccountStatusSample(ctx context.Context, pool *pgxpool.Pool) error {
-	input := AccountStatusUpdate{
+	input := accountStatusUpdate{
 		NewStatus:     "active",
 		AccountID:     166,
 		CurrentStatus: "frozen",
 	}
-	err := UpdateAccountStatus(ctx, pool, input)
+	err := updateAccountStatus(ctx, pool, input)
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Account current status %s, account number %v: successfylly updated to %s\n", input.CurrentStatus, input.AccountID, input.NewStatus)
+	fmt.Printf("Account current status %s, account number %v: successfully updated to %s\n", input.CurrentStatus, input.AccountID, input.NewStatus)
+	return nil
+}
+
+func ChangeAccountStatusSample(ctx context.Context, pool *pgxpool.Pool) error {
+	input := accountStatusUpdate{
+		NewStatus:     "closed",
+		AccountID:     166,
+		CurrentStatus: "frozen",
+		UserRole:      "support",
+	}
+	err := ChangeAccountStatus(ctx, pool, input.AccountID, input.NewStatus, input.UserRole)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Account current status %s, account number %v: successfully updated to %s\n", input.CurrentStatus, input.AccountID, input.NewStatus)
 	return nil
 }
