@@ -255,7 +255,7 @@ func CreateAccount(ctx context.Context, db DBRunner, input CustomerAccount) (int
 	return 0, fmt.Errorf("unable to generate unique account number")
 }
 
-func UpdatePendingAccountActiive(ctx context.Context, db DBRunner, accountID int64) error {
+func UpdatePendingAccountActive(ctx context.Context, db DBRunner, accountID int64) error {
 	updateAccountbyID := `
 	UPDATE accounts
 	SET account_status = 'active'
