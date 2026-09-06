@@ -282,13 +282,29 @@ func CreateAccount(ctx context.Context, db DBRunner, input CustomerAccount) (int
 	return 0, fmt.Errorf("unable to generate unique account number")
 }
 
+func GetAccountStatusByID(ctx context.Context, db DBRunner, accountID int64) (string, error) {
+	getAccountStatusQuery := `
+	SELECT account_status 
+	FROM accounts
+	WHERE id = @accountID`
+
+	args := pgx.NamedArgs{
+		"accountID": accountID,
+	}
+	var status string
+	row := db.QueryRow(ctx, getAccountStatusQuery, args)
+	err := row.Scan(&status)
+	if err != nil {
+		return "", err
+	}
+
+	return status, nil
+}
+
 func UpdateAccountStatus(ctx context.Context, db DBRunner, input AccountStatusUpdate) error {
 
 	allowed := isAccountStatusTransitionAllowed(input.CurrentStatus, input.NewStatus)
 
-	if !allowed {
-		return fmt.Errorf("invalid account status transition from %s to %s", input.CurrentStatus, input.NewStatus)
-	}
 	if !allowed {
 		return fmt.Errorf("invalid account status transition from %s to %s", input.CurrentStatus, input.NewStatus)
 	}
@@ -312,4 +328,24 @@ func UpdateAccountStatus(ctx context.Context, db DBRunner, input AccountStatusUp
 		return errors.New("no accounts found to update status")
 	}
 	return nil
+}
+
+func ChangeAccountStatus(ctx context.Context, db DBRunner, accountID int64, newStatus string) error {
+	accountStatus, err := GetAccountStatusByID(ctx, db, accountID)
+	if err != nil {
+		return err
+	}
+
+	accountUpdate := AccountStatusUpdate{
+		AccountID:     accountID,
+		CurrentStatus: accountStatus,
+		NewStatus:     newStatus,
+	}
+
+	err = UpdateAccountStatus(ctx, db, accountUpdate)
+	if err != nil {
+		return err
+	}
+	return nil
+
 }
