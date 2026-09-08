@@ -29,9 +29,6 @@ CREATE TABLE accounts (
     currency VARCHAR(3) NOT NULL,
     account_type VARCHAR(30) NOT NULL,
     account_number VARCHAR(32) NOT NULL UNIQUE,
-    changed_by_user_id BIGINT NOT NULL REFERENCES users(id),
-    changed_by_user_role VARCHAR(30) NOT NULL  REFERENCES users(user_role),
-    reason_for_account_change VARCHAR(255),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     
@@ -43,11 +40,27 @@ CREATE TABLE accounts (
 
     CONSTRAINT accounts_currency_check
         CHECK (LENGTH(currency) = 3 AND currency = UPPER(currency))
-
-    
 );
 
-CREATE TABLE account_status_changesaccount_status_changes (
+CREATE TABLE account_status_changes (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    account_id BIGINT NOT NULL REFERENCES accounts(id),
+    old_status VARCHAR(30) NOT NULL,
+    new_status VARCHAR(30) NOT NULL,
+    changed_by_user_id BIGINT NOT NULL REFERENCES users(id),
+    changed_by_user_role VARCHAR(30) NOT NULL,
+    reason_for_account_change VARCHAR(255),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT account_status_changes_old_status_check
+        CHECK (old_status IN ('active', 'frozen', 'suspended', 'closed', 'pending')),
+
+    CONSTRAINT account_status_changes_new_status_check
+        CHECK (new_status IN ('active', 'frozen', 'suspended', 'closed', 'pending')),
+        
+    CONSTRAINT account_status_changes_changed_by_user_role_check
+        CHECK (changed_by_user_role IN ('admin', 'support', 'customer'))
+);
 
 
 CREATE TABLE transactions (
