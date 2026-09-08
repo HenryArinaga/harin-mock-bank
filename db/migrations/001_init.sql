@@ -29,6 +29,9 @@ CREATE TABLE accounts (
     currency VARCHAR(3) NOT NULL,
     account_type VARCHAR(30) NOT NULL,
     account_number VARCHAR(32) NOT NULL UNIQUE,
+    changed_by_user_id BIGINT NOT NULL REFERENCES users(id),
+    changed_by_user_role VARCHAR(30) NOT NULL  REFERENCES users(user_role),
+    reason_for_account_change VARCHAR(255),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     
@@ -43,6 +46,9 @@ CREATE TABLE accounts (
 
     
 );
+
+CREATE TABLE account_status_changesaccount_status_changes (
+
 
 CREATE TABLE transactions (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,

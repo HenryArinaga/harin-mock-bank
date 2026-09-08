@@ -106,3 +106,41 @@ func TestCreateAccount(t *testing.T) {
 	}
 	t.Logf("created account id: %d for customer id: %d", accountID, customerProfile.ID)
 }
+
+func TestIsAccountStatusTransitionAllowed(t *testing.T) {
+
+	got := isAccountStatusTransitionAllowed("pending", "active")
+	if !got {
+		t.Fatalf("cannot update account status")
+	}
+}
+
+func TestIsAccountStatusTransitionInvalid(t *testing.T) {
+
+	got := isAccountStatusTransitionAllowed("active", "pending")
+	if got == true {
+		t.Fatalf("should not be able to update account")
+	}
+}
+
+func TestWrongAccountStatusName(t *testing.T) {
+
+	got := isAccountStatusTransitionAllowed("active", "banana")
+	if got == true {
+		t.Fatalf("should not be able to update account")
+	}
+}
+
+func TestIsAllowedToChangeStatusOfAccount(t *testing.T) {
+	result := isAllowedToChangeStatusOfAccount("admin", "closed")
+	if !result {
+		t.Fatalf("cannot update account status")
+	}
+}
+
+func TestIsNotallowedToChangeStatusOfAccount(t *testing.T) {
+	result := isAllowedToChangeStatusOfAccount("customer", "active")
+	if result == true {
+		t.Fatalf("should not be able to update account")
+	}
+}

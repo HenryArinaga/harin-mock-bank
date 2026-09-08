@@ -42,7 +42,6 @@ type accountStatusUpdate struct {
 	AccountID     int64
 	CurrentStatus string
 	NewStatus     string
-	UserRole      string
 }
 
 var allowedAccountStatusTransitions = map[string][]string{
