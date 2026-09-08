@@ -331,7 +331,7 @@ func GetAccountStatusByID(ctx context.Context, db DBRunner, accountID int64) (st
 }
 
 // lower case function to make it harder to misuse
-func updateAccountStatus(ctx context.Context, db DBRunner, input accountStatusUpdate, input2 accountStatusHistory) error {
+func updateAccountStatus(ctx context.Context, db DBRunner, input accountStatusUpdate) error {
 
 	allowed := isAccountStatusTransitionAllowed(input.CurrentStatus, input.NewStatus)
 
@@ -356,41 +356,6 @@ func updateAccountStatus(ctx context.Context, db DBRunner, input accountStatusUp
 	}
 	if commandTag.RowsAffected() < 1 {
 		return errors.New("no accounts found to update status")
-	}
-
-	insertAccountStatusChange :=
-		`INSERT INTO account_status_changes (
-	account_id,
-	old_status,
-	new_status,
-	changed_by_user_id,
-	changed_by_user_role,
-	reason_for_account_change
-	)
-	VALUES  (
-	@accountID,
-	@oldStatus,
-	@newStatus,
-	@changedByUserID,
-	@changedByUserRole,
-	@reasonForAccountChange
-	)
-	`
-	args = pgx.NamedArgs{
-		"accountID":              input2.AccountID,
-		"oldStatus":              input2.OldStatus,
-		"newStatus":              input2.NewStatus,
-		"changedByUserID":        input2.ChangedByUserID,
-		"changedByUserRole":      input2.ChangedByUserRole,
-		"reasonForAccountChange": input2.Reason,
-	}
-	commandTag, err = db.Exec(ctx, insertAccountStatusChange, args)
-	if err != nil {
-		return err
-	}
-
-	if commandTag.RowsAffected() < 1 {
-		return errors.New("no account found to update")
 	}
 	return nil
 }
@@ -421,21 +386,18 @@ func ChangeAccountStatus(ctx context.Context, db DBRunner, accountID int64, newS
 		ChangedByUserRole: userRole,
 	}
 
-	err = updateAccountStatus(ctx, db, accountStatusUpdate, accountStatusHistory)
+	err = updateAccountStatus(ctx, db, accountUpdate)
 	if err != nil {
 		return err
 	}
-	/*
-		err = InsertAccountStatusChange(ctx, db, accountHistory)
-		if err != nil {
-			return err
-		}
-	*/
-	return nil
+	err = InsertAccountStatusChange(ctx, db, accountHistory)
+	if err != nil {
+		return err
+	}
 
+	return nil
 }
 
-/*
 func InsertAccountStatusChange(ctx context.Context, db DBRunner, input accountStatusHistory) error {
 	insertAccountStatusChange :=
 		`INSERT INTO account_status_changes (
@@ -453,7 +415,7 @@ func InsertAccountStatusChange(ctx context.Context, db DBRunner, input accountSt
 	@changedByUserID,
 	@changedByUserRole,
 	@reasonForAccountChange
-	)
+)
 	`
 	args := pgx.NamedArgs{
 		"accountID":              input.AccountID,
@@ -473,4 +435,3 @@ func InsertAccountStatusChange(ctx context.Context, db DBRunner, input accountSt
 	}
 	return nil
 }
-*/
