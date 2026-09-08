@@ -72,8 +72,10 @@ func ChangeAccountStatusSample(ctx context.Context, pool *pgxpool.Pool) error {
 	newStatus := "closed"
 	accountID := int64(166)
 	userRole := "support"
+	changedByUserID := int64(166)
+	reason := "Didnt pay bills"
 
-	err := ChangeAccountStatus(ctx, pool, accountID, newStatus, userRole)
+	err := ChangeAccountStatus(ctx, pool, accountID, newStatus, userRole, changedByUserID, reason)
 	if err != nil {
 		return err
 	}

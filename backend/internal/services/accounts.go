@@ -44,6 +44,15 @@ type accountStatusUpdate struct {
 	NewStatus     string
 }
 
+type accountStatusHistory struct {
+	AccountID         int64
+	OldStatus         string
+	NewStatus         string
+	ChangedByUserID   int64
+	ChangedByUserRole string
+	Reason            string
+}
+
 var allowedAccountStatusTransitions = map[string][]string{
 	"pending":   {"active", "frozen", "suspended", "closed"},
 	"active":    {"frozen", "suspended", "closed"},
@@ -322,7 +331,7 @@ func GetAccountStatusByID(ctx context.Context, db DBRunner, accountID int64) (st
 }
 
 // lower case function to make it harder to misuse
-func updateAccountStatus(ctx context.Context, db DBRunner, input accountStatusUpdate) error {
+func updateAccountStatus(ctx context.Context, db DBRunner, input accountStatusUpdate, input2 accountStatusHistory) error {
 
 	allowed := isAccountStatusTransitionAllowed(input.CurrentStatus, input.NewStatus)
 
@@ -348,10 +357,45 @@ func updateAccountStatus(ctx context.Context, db DBRunner, input accountStatusUp
 	if commandTag.RowsAffected() < 1 {
 		return errors.New("no accounts found to update status")
 	}
+
+	insertAccountStatusChange :=
+		`INSERT INTO account_status_changes (
+	account_id,
+	old_status,
+	new_status,
+	changed_by_user_id,
+	changed_by_user_role,
+	reason_for_account_change
+	)
+	VALUES  (
+	@accountID,
+	@oldStatus,
+	@newStatus,
+	@changedByUserID,
+	@changedByUserRole,
+	@reasonForAccountChange
+	)
+	`
+	args = pgx.NamedArgs{
+		"accountID":              input2.AccountID,
+		"oldStatus":              input2.OldStatus,
+		"newStatus":              input2.NewStatus,
+		"changedByUserID":        input2.ChangedByUserID,
+		"changedByUserRole":      input2.ChangedByUserRole,
+		"reasonForAccountChange": input2.Reason,
+	}
+	commandTag, err = db.Exec(ctx, insertAccountStatusChange, args)
+	if err != nil {
+		return err
+	}
+
+	if commandTag.RowsAffected() < 1 {
+		return errors.New("no account found to update")
+	}
 	return nil
 }
 
-func ChangeAccountStatus(ctx context.Context, db DBRunner, accountID int64, newStatus string, userRole string) error {
+func ChangeAccountStatus(ctx context.Context, db DBRunner, accountID int64, newStatus string, userRole string, changedByUserID int64, reason string) error {
 	rolePermissionCheck := isAllowedToChangeStatusOfAccount(userRole, newStatus)
 	if !rolePermissionCheck {
 		return errors.New("user permissions not allowed to change account status")
@@ -368,10 +412,65 @@ func ChangeAccountStatus(ctx context.Context, db DBRunner, accountID int64, newS
 		NewStatus:     newStatus,
 	}
 
-	err = updateAccountStatus(ctx, db, accountUpdate)
+	accountHistory := accountStatusHistory{
+		AccountID:         accountID,
+		ChangedByUserID:   changedByUserID,
+		Reason:            reason,
+		OldStatus:         accountStatus,
+		NewStatus:         newStatus,
+		ChangedByUserRole: userRole,
+	}
+
+	err = updateAccountStatus(ctx, db, accountStatusUpdate, accountStatusHistory)
 	if err != nil {
 		return err
 	}
+	/*
+		err = InsertAccountStatusChange(ctx, db, accountHistory)
+		if err != nil {
+			return err
+		}
+	*/
 	return nil
 
 }
+
+/*
+func InsertAccountStatusChange(ctx context.Context, db DBRunner, input accountStatusHistory) error {
+	insertAccountStatusChange :=
+		`INSERT INTO account_status_changes (
+	account_id,
+	old_status,
+	new_status,
+	changed_by_user_id,
+	changed_by_user_role,
+	reason_for_account_change
+	)
+	VALUES  (
+	@accountID,
+	@oldStatus,
+	@newStatus,
+	@changedByUserID,
+	@changedByUserRole,
+	@reasonForAccountChange
+	)
+	`
+	args := pgx.NamedArgs{
+		"accountID":              input.AccountID,
+		"oldStatus":              input.OldStatus,
+		"newStatus":              input.NewStatus,
+		"changedByUserID":        input.ChangedByUserID,
+		"changedByUserRole":      input.ChangedByUserRole,
+		"reasonForAccountChange": input.Reason,
+	}
+	commandTag, err := db.Exec(ctx, insertAccountStatusChange, args)
+	if err != nil {
+		return err
+	}
+
+	if commandTag.RowsAffected() < 1 {
+		return errors.New("no account found to update")
+	}
+	return nil
+}
+*/
