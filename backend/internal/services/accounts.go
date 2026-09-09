@@ -360,13 +360,24 @@ func updateAccountStatus(ctx context.Context, db DBRunner, input accountStatusUp
 	return nil
 }
 
-func ChangeAccountStatus(ctx context.Context, db DBRunner, accountID int64, newStatus string, userRole string, changedByUserID int64, reason string) error {
+func ChangeAccountStatus(ctx context.Context, pool *pgxpool.Pool, accountID int64, newStatus string, userRole string, changedByUserID int64, reason string) error {
 	rolePermissionCheck := isAllowedToChangeStatusOfAccount(userRole, newStatus)
 	if !rolePermissionCheck {
 		return errors.New("user permissions not allowed to change account status")
 	}
 
-	accountStatus, err := GetAccountStatusByID(ctx, db, accountID)
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("begin account status change: %w", err)
+	}
+
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback(ctx)
+		}
+	}()
+
+	accountStatus, err := GetAccountStatusByID(ctx, tx, accountID)
 	if err != nil {
 		return err
 	}
@@ -386,13 +397,18 @@ func ChangeAccountStatus(ctx context.Context, db DBRunner, accountID int64, newS
 		ChangedByUserRole: userRole,
 	}
 
-	err = updateAccountStatus(ctx, db, accountUpdate)
+	err = updateAccountStatus(ctx, tx, accountUpdate)
 	if err != nil {
 		return err
 	}
-	err = InsertAccountStatusChange(ctx, db, accountHistory)
+	err = InsertAccountStatusChange(ctx, tx, accountHistory)
 	if err != nil {
 		return err
+	}
+
+	err = tx.Commit(ctx)
+	if err != nil {
+		return fmt.Errorf("commit transaction: %w", err)
 	}
 
 	return nil
