@@ -53,6 +53,11 @@ type accountStatusHistory struct {
 	Reason            string
 }
 
+type OpenAccountInput struct {
+	AccountType string
+	Currency    string
+}
+
 var allowedAccountStatusTransitions = map[string][]string{
 	"pending":   {"active", "frozen", "suspended", "closed"},
 	"active":    {"frozen", "suspended", "closed"},
@@ -65,6 +70,12 @@ var allowedUserRole = map[string][]string{
 	"admin":    {"active", "frozen", "suspended", "closed"},
 	"support":  {"active", "frozen", "suspended"},
 	"customer": {},
+}
+
+var allowedCurrency = map[string]bool{
+	"AUD": true, "CAD": true, "CHF": true,
+	"EUR": true, "GBP": true, "INR": true,
+	"JPY": true, "MXN": true, "USD": true,
 }
 
 // helper functions for other functions in this file
@@ -452,7 +463,7 @@ func InsertAccountStatusChange(ctx context.Context, db DBRunner, input accountSt
 	return nil
 }
 
-func OpenAccount(ctx context.Context, db DBRunner, tokenString string, input CustomerAccount) (int64, error) {
+func OpenAccount(ctx context.Context, db DBRunner, tokenString string, input OpenAccountInput) (int64, error) {
 
 	profile, err := GetCustomerProfileByJWT(ctx, db, tokenString)
 	if err != nil {
@@ -464,6 +475,14 @@ func OpenAccount(ctx context.Context, db DBRunner, tokenString string, input Cus
 		AccountType: input.AccountType,
 		Currency:    input.Currency,
 	}
+
+	if input.AccountType != "checking" && input.AccountType != "savings" {
+		return 0, errors.New("unsupported account type")
+	}
+	if allowedCurrency[input.Currency] != true {
+		return 0, errors.New("unsupported currency")
+	}
+
 	accountID, err := CreateAccount(ctx, db, customerAccount)
 	if err != nil {
 		return 0, err

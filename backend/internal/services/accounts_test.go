@@ -186,7 +186,7 @@ func TestOpenAccountSuccess(t *testing.T) {
 		t.Fatalf("error logging in: %v", err)
 	}
 
-	customerAccount := CustomerAccount{
+	customerAccount := OpenAccountInput{
 		AccountType: "checking",
 		Currency:    "USD",
 	}
@@ -254,7 +254,7 @@ func TestOpenAccountInvalidToken(t *testing.T) {
 
 	token := "1231"
 
-	customerAccount := CustomerAccount{
+	customerAccount := OpenAccountInput{
 		AccountType: "checking",
 		Currency:    "USD",
 	}
@@ -262,6 +262,65 @@ func TestOpenAccountInvalidToken(t *testing.T) {
 	accountID, err := OpenAccount(ctx, pool, token, customerAccount)
 	if err == nil {
 		t.Fatalf("expected an error for invalid token")
+	}
+	if accountID != 0 {
+		t.Fatalf("expected account ID 0, got %d", accountID)
+	}
+
+}
+
+func TestOpenAccountRejectsCredit(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	godotenv.Load("../../../.env")
+	pool, err := db.NewPool(ctx)
+	if err != nil {
+		t.Fatalf("could not connect to pool: %v", err)
+	}
+	defer pool.Close()
+
+	t.Logf("Success connecting to pool\n")
+
+	email := fmt.Sprintf("test-%d@gmail.com", time.Now().UnixNano())
+	t.Logf("Registration email: %s", email)
+
+	signUp := RegistrationInput{
+		Email:     email,
+		Password:  "123456",
+		FirstName: "Henry",
+		LastName:  "Testing",
+		Phone:     "6614265690",
+		DOB:       "1999-02-18",
+	}
+
+	err = RegisterCustomer(ctx, pool, signUp)
+	if err != nil {
+		t.Fatalf("Error:: %v\n", err)
+	}
+
+	logIn := LoginUserInput{
+		Email:    signUp.Email,
+		Password: signUp.Password,
+	}
+
+	loginResult, err := LogInUser(ctx, pool, logIn)
+	if err != nil {
+		t.Fatalf("error logging in: %v", err)
+	}
+
+	customerAccount := OpenAccountInput{
+		AccountType: "credit",
+		Currency:    "USD",
+	}
+
+	accountID, err := OpenAccount(ctx, pool, loginResult.Token, customerAccount)
+	if err == nil {
+		t.Fatalf("error in: %v", err)
+	}
+
+	if err.Error() != "unsupported account type" {
+		t.Fatalf("unsupported account type")
 	}
 	if accountID != 0 {
 		t.Fatalf("expected account ID 0, got %d", accountID)
