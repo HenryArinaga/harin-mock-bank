@@ -239,3 +239,32 @@ func TestOpenAccountSuccess(t *testing.T) {
 		t.Fatalf("expected %v got: %v", profile.ID, customerID)
 	}
 }
+func TestOpenAccountInvalidToken(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	godotenv.Load("../../../.env")
+	pool, err := db.NewPool(ctx)
+	if err != nil {
+		t.Fatalf("could not connect to pool: %v", err)
+	}
+	defer pool.Close()
+
+	t.Logf("Success connecting to pool\n")
+
+	token := "1231"
+
+	customerAccount := CustomerAccount{
+		AccountType: "checking",
+		Currency:    "USD",
+	}
+
+	accountID, err := OpenAccount(ctx, pool, token, customerAccount)
+	if err == nil {
+		t.Fatalf("expected an error for invalid token")
+	}
+	if accountID != 0 {
+		t.Fatalf("expected account ID 0, got %d", accountID)
+	}
+
+}
