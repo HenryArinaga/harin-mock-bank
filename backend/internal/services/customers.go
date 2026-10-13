@@ -34,6 +34,15 @@ type CustomerProfile struct {
 	DOB       time.Time
 }
 
+type RegistrationInput struct {
+	Email     string
+	Password  string
+	FirstName string
+	LastName  string
+	Phone     string
+	DOB       string
+}
+
 func ListCustomerBalances(ctx context.Context, pool *pgxpool.Pool) ([]CustomerBalance, error) {
 	rows, err := pool.Query(ctx, "select customer_id, first_name, last_name, email, balances_by_currency from customer_balances_json order by customer_id limit 20")
 	if err != nil {
@@ -146,27 +155,41 @@ func GetCustomerProfileByJWT(ctx context.Context, db DBRunner, tokenString strin
 	return customerProfile, nil
 }
 
-/*
-func RegisterCustomer(ctx context.Context, pool *pgxpool.Pool) error {
+func RegisterCustomer(ctx context.Context, pool *pgxpool.Pool, input RegistrationInput) error {
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
 
-	email := fmt.Sprintf("test-%d@gmail.com", time.Now().UnixNano())
-
-	input := SignUpUserInput{
-		Email:    email,
-		Password: "123456",
+	signUp := SignUpUserInput{
+		Email:    input.Email,
+		Password: input.Password,
 		UserRole: "customer",
 	}
 
-	_, err := SignUpUser(ctx, pool, input)
+	userID, err := SignUpUser(ctx, tx, signUp)
 	if err != nil {
 		return err
 	}
 
-	_, err = CreateCustomerProfile(ctx, pool, customerInput)
+	profileInput := CustomerProfileInformation{
+		UserID:    userID,
+		FirstName: input.FirstName,
+		LastName:  input.LastName,
+		Phone:     input.Phone,
+		DOB:       input.DOB,
+	}
+
+	_, err = CreateCustomerProfile(ctx, tx, profileInput)
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit(ctx)
 	if err != nil {
 		return err
 	}
 
 	return nil
 }
-*/

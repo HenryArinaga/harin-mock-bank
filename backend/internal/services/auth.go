@@ -33,12 +33,7 @@ type LoginResult struct {
 	Token string
 }
 
-func SignUpUser(ctx context.Context, pool *pgxpool.Pool, input SignUpUserInput) (int64, error) {
-	tx, err := pool.Begin(ctx)
-	if err != nil {
-		return 0, fmt.Errorf("begin transaction: %w", err)
-	}
-	defer tx.Rollback(ctx)
+func SignUpUser(ctx context.Context, db DBRunner, input SignUpUserInput) (int64, error) {
 
 	signUpCustomerQuery := `
 	INSERT INTO users (
@@ -67,18 +62,13 @@ func SignUpUser(ctx context.Context, pool *pgxpool.Pool, input SignUpUserInput) 
 
 	var userID int64
 	var pgErr *pgconn.PgError
-	row := tx.QueryRow(ctx, signUpCustomerQuery, args)
+	row := db.QueryRow(ctx, signUpCustomerQuery, args)
 	err = row.Scan(&userID)
 	if err != nil {
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 			return 0, fmt.Errorf("email already exists")
 		}
 		return 0, fmt.Errorf("failed to insert user: %w", err)
-	}
-
-	err = tx.Commit(ctx)
-	if err != nil {
-		return 0, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
 	return userID, nil
@@ -144,10 +134,11 @@ func LogInUser(ctx context.Context, pool *pgxpool.Pool, input LoginUserInput) (L
 	if err != nil {
 		return LoginResult{}, fmt.Errorf("update last login: %w", err)
 	}
-	err = tx.Commit(ctx)
+	tx, err = pool.Begin(ctx)
 	if err != nil {
-		return LoginResult{}, fmt.Errorf("commit login: %w", err)
+		return LoginResult{}, fmt.Errorf("begin transaction: %w", err)
 	}
+	defer tx.Rollback(ctx)
 
 	return LoginResult{
 		User:  authenticatedUser,

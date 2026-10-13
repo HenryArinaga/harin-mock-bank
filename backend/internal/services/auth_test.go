@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/joho/godotenv"
 )
 
@@ -264,7 +265,7 @@ func TestLogInPass(t *testing.T) {
 	t.Logf("Success connecting to pool\n")
 
 	logIn := LoginUserInput{
-		Email:    "test1@gmail.com",
+		Email:    "test-1791864951239846120@gmail.com",
 		Password: "123456",
 	}
 
@@ -287,4 +288,81 @@ func TestLogInPass(t *testing.T) {
 		t.Fatalf("expected authenticated user ID to be set")
 	}
 
+}
+
+func TestRegisterCustomerSuccess(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	godotenv.Load("../../../.env")
+	pool, err := db.NewPool(ctx)
+	if err != nil {
+		t.Fatalf("could not connect to pool: %v", err)
+	}
+	defer pool.Close()
+
+	t.Logf("Success connecting to pool\n")
+
+	email := fmt.Sprintf("test-%d@gmail.com", time.Now().UnixNano())
+	t.Logf("Registration email: %s", email)
+
+	signUp := RegistrationInput{
+		Email:     email,
+		Password:  "123456",
+		FirstName: "Henry",
+		LastName:  "Testing",
+		Phone:     "6614265690",
+		DOB:       "1999-02-18",
+	}
+
+	err = RegisterCustomer(ctx, pool, signUp)
+	if err != nil {
+		t.Fatalf("Error:: %v\n", err)
+	}
+}
+
+func TestRegisterCustomerRollback(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	godotenv.Load("../../../.env")
+	pool, err := db.NewPool(ctx)
+	if err != nil {
+		t.Fatalf("could not connect to pool: %v", err)
+	}
+	defer pool.Close()
+
+	t.Logf("Success connecting to pool\n")
+
+	email := fmt.Sprintf("test-%d@gmail.com", time.Now().UnixNano())
+	t.Logf("Registration email: %s", email)
+
+	signUp := RegistrationInput{
+		Email:     email,
+		Password:  "123456",
+		FirstName: "Tester",
+		LastName:  "Testing",
+		Phone:     "6610000000",
+		DOB:       "NotAValidDate",
+	}
+
+	err = RegisterCustomer(ctx, pool, signUp)
+	if err == nil {
+		t.Fatalf("expected registration to fail for invalid DOB")
+	}
+	query := `
+	SELECT id, email                                                                    
+	FROM users
+	WHERE email = @email
+	`
+	args := pgx.NamedArgs{
+		"email": email,
+	}
+	commandTag, err := pool.Exec(ctx, query, args)
+	if err != nil {
+		t.Fatalf("Error:: %v\n", err)
+	}
+	if commandTag.RowsAffected() != 0 {
+		t.Fatalf("expected rollback to 0 rows")
+	}
 }
