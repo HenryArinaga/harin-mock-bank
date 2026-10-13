@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/joho/godotenv"
 )
 
@@ -142,5 +143,99 @@ func TestIsNotallowedToChangeStatusOfAccount(t *testing.T) {
 	result := isAllowedToChangeStatusOfAccount("customer", "active")
 	if result == true {
 		t.Fatalf("should not be able to update account")
+	}
+}
+
+func TestOpenAccountSuccess(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	godotenv.Load("../../../.env")
+	pool, err := db.NewPool(ctx)
+	if err != nil {
+		t.Fatalf("could not connect to pool: %v", err)
+	}
+	defer pool.Close()
+
+	t.Logf("Success connecting to pool\n")
+
+	email := fmt.Sprintf("test-%d@gmail.com", time.Now().UnixNano())
+	t.Logf("Registration email: %s", email)
+
+	signUp := RegistrationInput{
+		Email:     email,
+		Password:  "123456",
+		FirstName: "Henry",
+		LastName:  "Testing",
+		Phone:     "6614265690",
+		DOB:       "1999-02-18",
+	}
+
+	err = RegisterCustomer(ctx, pool, signUp)
+	if err != nil {
+		t.Fatalf("Error:: %v\n", err)
+	}
+
+	logIn := LoginUserInput{
+		Email:    signUp.Email,
+		Password: signUp.Password,
+	}
+
+	loginResult, err := LogInUser(ctx, pool, logIn)
+	if err != nil {
+		t.Fatalf("error logging in: %v", err)
+	}
+
+	customerAccount := CustomerAccount{
+		AccountType: "checking",
+		Currency:    "USD",
+	}
+
+	accountID, err := OpenAccount(ctx, pool, loginResult.Token, customerAccount)
+	if err != nil {
+		t.Fatalf("error in: %v", err)
+	}
+
+	query := `
+	SELECT customer_id, account_type, currency, account_status
+	FROM accounts
+	WHERE id = @accountID`
+
+	args := pgx.NamedArgs{
+		"accountID": accountID,
+	}
+	var customerID int64
+	var accountType string
+	var currency string
+	var accountStatus string
+	row := pool.QueryRow(ctx, query, args)
+	err = row.Scan(
+		&customerID,
+		&accountType,
+		&currency,
+		&accountStatus,
+	)
+	if err != nil {
+		t.Fatalf("error in: %v", err)
+	}
+
+	if accountType != "checking" {
+		t.Fatalf("expected checking got: %v", accountType)
+	}
+
+	if currency != "USD" {
+		t.Fatalf("expected USD got: %v", currency)
+	}
+
+	if accountStatus != "pending" {
+		t.Fatalf("expected Pending got: %v", accountStatus)
+	}
+
+	profile, err := GetCustomerProfileByUserID(ctx, pool, loginResult.User.ID)
+	if err != nil {
+		t.Fatalf("error in: %v", err)
+	}
+	if customerID != profile.ID {
+		t.Fatalf("expected %v got: %v", profile.ID, customerID)
 	}
 }

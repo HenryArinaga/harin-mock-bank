@@ -451,3 +451,22 @@ func InsertAccountStatusChange(ctx context.Context, db DBRunner, input accountSt
 	}
 	return nil
 }
+
+func OpenAccount(ctx context.Context, db DBRunner, tokenString string, input CustomerAccount) (int64, error) {
+
+	profile, err := GetCustomerProfileByJWT(ctx, db, tokenString)
+	if err != nil {
+		return 0, err
+	}
+
+	customerAccount := CustomerAccount{
+		CustomerID:  profile.ID,
+		AccountType: input.AccountType,
+		Currency:    input.Currency,
+	}
+	accountID, err := CreateAccount(ctx, db, customerAccount)
+	if err != nil {
+		return 0, err
+	}
+	return accountID, nil
+}
